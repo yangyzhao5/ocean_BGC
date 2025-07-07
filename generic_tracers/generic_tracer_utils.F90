@@ -18,8 +18,8 @@
 module g_tracer_utils
 #include <fms_platform.h>
 
-  use coupler_types_mod, only: coupler_2d_bc_type, ind_flux, ind_deltap, ind_kw
-  use coupler_types_mod, only: ind_alpha, ind_csurf, ind_sc_no
+  use coupler_types_mod, only: coupler_2d_bc_type, ind_flux, ind_deltap, ind_kw, ind_kw_asym, ind_f_asym ! YZ: D25, 19/06/2025
+  use coupler_types_mod, only: ind_alpha, ind_csurf, ind_sc_no, ind_out1, ind_out2 ! YZ: D25, 19/06/2025
   use FMS_coupler_util,  only: extract_coupler_values, set_coupler_values
   use atmos_ocean_fluxes_mod, only: aof_set_coupler_flux
   use mpp_mod,           only: mpp_error, NOTE, WARNING, FATAL
@@ -193,6 +193,8 @@ module g_tracer_utils
      real, _ALLOCATABLE, dimension(:,:)    :: stf_gas    _NULL
      real, _ALLOCATABLE, dimension(:,:)    :: deltap    _NULL
      real, _ALLOCATABLE, dimension(:,:)    :: kw    _NULL
+     real, _ALLOCATABLE, dimension(:,:)    :: kw_asym    _NULL ! YZ: D25, 19/06/2025 {
+     real, _ALLOCATABLE, dimension(:,:)    :: f_asym    _NULL  ! } YZ
 
      ! Bottom  flux
      real, _ALLOCATABLE, dimension(:,:)    :: btf    _NULL
@@ -218,6 +220,10 @@ module g_tracer_utils
      real, _ALLOCATABLE, dimension(:,:)    :: alpha  _NULL 
 
      real, _ALLOCATABLE, dimension(:,:)    :: sc_no  _NULL 
+     
+     ! Wind velocity
+     real, _ALLOCATABLE, dimension(:,:)    :: u10  _NULL ! YZ: D25, 19/06/2025 {
+     real, _ALLOCATABLE, dimension(:,:)    :: ust  _NULL ! } YZ
 
      ! An 3D field for vertical movement, esp. for zooplankton, ... 
      real, _ALLOCATABLE, dimension(:,:,:)  :: vmove  _NULL
@@ -242,6 +248,7 @@ module g_tracer_utils
 
      ! IDs for using diag_manager tools
      integer :: diag_id_field=-1, diag_id_stf=-1, diag_id_stf_gas=-1, diag_id_deltap=-1, diag_id_kw=-1, diag_id_trunoff=-1
+     integer :: diag_id_kw_asym=-1, diag_id_f_asym=-1, diag_id_u10=-1, diag_id_ust=-1 ! YZ: D25, 19/06/2025
      integer :: diag_id_stf_gas_aux=-1
      integer :: diag_id_alpha=-1, diag_id_csurf=-1, diag_id_sc_no=-1, diag_id_aux=-1
      integer :: diag_id_btf=-1,diag_id_btm=-1, diag_id_vmove=-1, diag_id_vdiff=-1
@@ -1084,10 +1091,14 @@ contains
        allocate(g_tracer%alpha(isd:ied,jsd:jed));g_tracer%alpha=0.0
        allocate(g_tracer%csurf(isd:ied,jsd:jed));g_tracer%csurf=0.0
        allocate(g_tracer%stf_gas(isd:ied,jsd:jed)); g_tracer%stf_gas(:,:) = 0.0 
+       allocate(g_tracer%f_asym(isd:ied,jsd:jed)); g_tracer%f_asym(:,:) = 0.0   ! YZ: D25, 19/06/2025
        if(g_tracer%flux_gas_type .eq. 'air_sea_gas_flux_generic') then
           allocate(g_tracer%sc_no(isd:ied,jsd:jed));g_tracer%sc_no=0.0
           allocate(g_tracer%deltap(isd:ied,jsd:jed)); g_tracer%deltap(:,:) = 0.0 
           allocate(g_tracer%kw(isd:ied,jsd:jed)); g_tracer%kw(:,:) = 0.0 
+          allocate(g_tracer%kw_asym(isd:ied,jsd:jed)); g_tracer%kw_asym(:,:) = 0.0 ! YZ: D25, 19/06/2025 {
+          allocate(g_tracer%u10(isd:ied,jsd:jed)); g_tracer%u10(:,:) =0.0
+          allocate(g_tracer%ust(isd:ied,jsd:jed)); g_tracer%ust(:,:) = 0.0         ! } YZ
        endif
     endif
     if(g_tracer%flux_runoff) then
@@ -1326,6 +1337,26 @@ contains
          trim('m/sec'),                &
          missing_value = -1.0e+20)
 
+    ! YZ: D25, 19/06/2025 {
+    string=trim(g_tracer%alias) // trim("_kw_asym")
+    g_tracer%diag_id_kw_asym = g_register_diag_field(g_tracer%package_name, &
+         trim(string),                 &
+         g_tracer_com%axes(1:2),       &
+         g_tracer_com%init_time,       &
+         'Gas Exchange piston velocity for ' // trim(g_tracer%alias), &
+         trim('m/sec'),                &
+         missing_value = -1.0e+20)
+    
+    string=trim(g_tracer%alias) // trim("_f_asym")
+    g_tracer%diag_id_f_asym = g_register_diag_field(g_tracer%package_name, &
+         trim(string),                 &
+         g_tracer_com%axes(1:2),       &
+         g_tracer_com%init_time,       &
+         'Asymmetric Gas Exchange flux for ' // trim(g_tracer%alias), &
+         trim('m/sec'),                &
+         missing_value = -1.0e+20)
+    ! } YZ
+
     string=trim(g_tracer%alias) // trim("_btf")
     g_tracer%diag_id_btf = g_register_diag_field(g_tracer%package_name, &
          trim(string),                 &
@@ -1379,6 +1410,25 @@ contains
          'Ocean surface Schmidt Number for ' // trim(g_tracer%alias), &
          trim(g_tracer%units),         &
          missing_value = -1.0e+20)
+
+    ! YZ: D25, 19/06/2025 {
+    string=trim(g_tracer%alias) // trim("_u10")
+    g_tracer%diag_id_u10 = g_register_diag_field(g_tracer%package_name, &
+         trim(string),                 &
+         g_tracer_com%axes(1:2),       &
+         g_tracer_com%init_time,       &
+         'Wind Speed used in parameterization for ' // trim(g_tracer%alias), &
+         trim('m/s'),         &
+         missing_value = -1.0e+20)
+    string=trim(g_tracer%alias) // trim("_ust")
+    g_tracer%diag_id_ust = g_register_diag_field(g_tracer%package_name, &
+         trim(string),                 &
+         g_tracer_com%axes(1:2),       &
+         g_tracer_com%init_time,       &
+         'Wind friction speed used in parameterization for ' // trim(g_tracer%alias), &
+         trim('m/s'),         &
+         missing_value = -1.0e+20)
+    ! } YZ
 
   end subroutine g_tracer_register_diag
 
@@ -1504,6 +1554,7 @@ contains
     logical :: used
     character(len=fm_string_len), parameter :: sub_name = 'g_tracer_coupler_get'
     real, dimension(:,:), allocatable :: temp_array,stf_array,stf_gas_array,deltap_array, kw_array
+    real, dimension(:,:), allocatable :: kw_asym_array, f_asym_array, u10_array, ust_array ! YZ: D25, 19/06/2025
 
     if(.NOT. associated(g_tracer_list)) call mpp_error(FATAL, trim(sub_name)//&
          ": No tracer in the list.")
@@ -1514,7 +1565,10 @@ contains
     allocate(stf_gas_array(g_tracer_com%isd:g_tracer_com%ied,g_tracer_com%jsd:g_tracer_com%jed))
     allocate(deltap_array(g_tracer_com%isd:g_tracer_com%ied,g_tracer_com%jsd:g_tracer_com%jed))
     allocate(kw_array(g_tracer_com%isd:g_tracer_com%ied,g_tracer_com%jsd:g_tracer_com%jed))
-
+    allocate(kw_asym_array(g_tracer_com%isd:g_tracer_com%ied,g_tracer_com%jsd:g_tracer_com%jed)) ! YZ: D25, 19/06/2025 {
+    allocate(f_asym_array(g_tracer_com%isd:g_tracer_com%ied,g_tracer_com%jsd:g_tracer_com%jed)) 
+    allocate(u10_array(g_tracer_com%isd:g_tracer_com%ied,g_tracer_com%jsd:g_tracer_com%jed))  
+    allocate(ust_array(g_tracer_com%isd:g_tracer_com%ied,g_tracer_com%jsd:g_tracer_com%jed))     ! } YZ
 
     !Go through the list of tracers 
     do  
@@ -1550,6 +1604,7 @@ contains
              !This does temp_array=conv *BC_struc%bc(flux_gas_ind)%field(ind_flux)%values
              
              deltap_array = deltap_array+temp_array
+             
              temp_array=0.0
              kw_array=0.0
              call extract_coupler_values(BC_struc  =IOB_struc, &
@@ -1563,6 +1618,56 @@ contains
              !This does temp_array=conv *BC_struc%bc(flux_gas_ind)%field(ind_flux)%values
              
              kw_array = kw_array+temp_array
+             
+             ! YZ: D25, 19/06/2025 {
+             temp_array=0.0
+             kw_asym_array=0.0
+             call extract_coupler_values(BC_struc  =IOB_struc, &
+                  BC_index  =g_tracer%flux_gas_ind,    &
+                  BC_element=ind_kw_asym,                   &
+                  array_out =temp_array,               &
+                  conversion=1.0,                      &
+                  ilb=g_tracer_com%isd,jlb=g_tracer_com%jsd,& !lower bounds of array_out
+                  is=g_tracer_com%isc, ie=g_tracer_com%iec,&
+                  js=g_tracer_com%jsc, je=g_tracer_com%jec)
+             kw_asym_array = kw_asym_array+temp_array
+             
+             temp_array=0.0
+             f_asym_array=0.0
+             call extract_coupler_values(BC_struc  =IOB_struc, &
+                  BC_index  =g_tracer%flux_gas_ind,    &
+                  BC_element=ind_f_asym,                   &
+                  array_out =temp_array,               &
+                  conversion=-1.0,                      &
+                  ilb=g_tracer_com%isd,jlb=g_tracer_com%jsd,& !lower bounds of array_out
+                  is=g_tracer_com%isc, ie=g_tracer_com%iec,&
+                  js=g_tracer_com%jsc, je=g_tracer_com%jec)
+             f_asym_array = f_asym_array+temp_array
+             temp_array=0.0
+             
+             u10_array=0.0
+             call extract_coupler_values(BC_struc  =IOB_struc, &
+                  BC_index  =g_tracer%flux_gas_ind,    &
+                  BC_element=ind_out1,                  &
+                  array_out =temp_array,               &
+                  conversion=1.0,                      &
+                  ilb=g_tracer_com%isd,jlb=g_tracer_com%jsd,& !lower bounds of array_out
+                  is=g_tracer_com%isc, ie=g_tracer_com%iec,&
+                  js=g_tracer_com%jsc, je=g_tracer_com%jec)
+             u10_array = u10_array+temp_array
+             
+             temp_array=0.0
+             ust_array=0.0
+             call extract_coupler_values(BC_struc  =IOB_struc, &
+                  BC_index  =g_tracer%flux_gas_ind,    &
+                  BC_element=ind_out2,                  &
+                  array_out =temp_array,               &
+                  conversion=1.0,                      &
+                  ilb=g_tracer_com%isd,jlb=g_tracer_com%jsd,& !lower bounds of array_out
+                  is=g_tracer_com%isc, ie=g_tracer_com%iec,&
+                  js=g_tracer_com%jsc, je=g_tracer_com%jec)
+             ust_array = ust_array+temp_array
+             ! } YZ
           endif
           
        endif
@@ -1629,11 +1734,19 @@ contains
        if(g_tracer%flux_gas) then
           call g_tracer_set_values(g_tracer,g_tracer%name,'stf_gas',stf_gas_array,&
                g_tracer_com%isd,g_tracer_com%jsd, weight)
+          call g_tracer_set_values(g_tracer,g_tracer%name,'f_asym',f_asym_array,& ! YZ: D25, 19/06/2025 {
+               g_tracer_com%isd,g_tracer_com%jsd, weight)                         ! } YZ
           if(g_tracer%flux_gas_type .eq. 'air_sea_gas_flux_generic') then
              call g_tracer_set_values(g_tracer,g_tracer%name,'deltap',deltap_array,&
                   g_tracer_com%isd,g_tracer_com%jsd, weight)
              call g_tracer_set_values(g_tracer,g_tracer%name,'kw',kw_array,&
                   g_tracer_com%isd,g_tracer_com%jsd, weight)
+             call g_tracer_set_values(g_tracer,g_tracer%name,'kw_asym',kw_asym_array,& ! YZ: D25, 19/06/2025 {
+                  g_tracer_com%isd,g_tracer_com%jsd, weight)
+             call g_tracer_set_values(g_tracer,g_tracer%name,'u10',u10_array,& 
+                  g_tracer_com%isd,g_tracer_com%jsd, weight)
+             call g_tracer_set_values(g_tracer,g_tracer%name,'ust',ust_array,& 
+                  g_tracer_com%isd,g_tracer_com%jsd, weight)                           ! } YZ
           endif
        endif
 
@@ -1652,6 +1765,7 @@ contains
     enddo
 
     deallocate(temp_array, stf_array, stf_gas_array, deltap_array, kw_array)
+    deallocate(kw_asym_array, f_asym_array, u10_array, ust_array) ! YZ: D25, 19/06/2025
 
   end subroutine g_tracer_coupler_get
 
@@ -1916,6 +2030,14 @@ contains
        array_ptr => g_tracer%deltap
     case ('kw') 
        array_ptr => g_tracer%kw
+    case ('kw_asym')                   ! YZ: D25, 19/06/2025 {
+       array_ptr => g_tracer%kw_asym
+    case ('f_asym')
+       array_ptr => g_tracer%f_asym
+    case ('u10')
+       array_ptr => g_tracer%u10
+    case ('ust')
+       array_ptr => g_tracer%ust       ! } YZ
     case ('btf') 
        array_ptr => g_tracer%btf
     case ('btm_reservoir') 
@@ -2056,6 +2178,14 @@ contains
        array = g_tracer%deltap
     case ('kw') 
        array = g_tracer%kw
+    case ('kw_asym')              ! YZ: D25, 19/06/2025 {
+       array = g_tracer%kw_asym
+    case ('f_asym')
+       array = g_tracer%f_asym
+    case ('u10')
+       array = g_tracer%u10
+    case ('ust')
+       array = g_tracer%ust       ! } YZ
     case ('btf') 
        array = g_tracer%btf
     case ('btm_reservoir') 
@@ -2200,6 +2330,14 @@ contains
        g_tracer%deltap = w0*g_tracer%deltap + w1*array
     case ('kw') 
        g_tracer%kw     = w0*g_tracer%kw + w1*array
+    case ('kw_asym')                                         ! YZ: D25, 19/06/2025 {
+       g_tracer%kw_asym= w0*g_tracer%kw_asym + w1*array
+    case ('f_asym')
+       g_tracer%f_asym = w0*g_tracer%f_asym + w1*array
+    case ('u10')
+       g_tracer%u10    = w0*g_tracer%u10 + w1*array
+    case ('ust')
+       g_tracer%ust    = w0*g_tracer%ust + w1*array          ! } YZ
     case ('btf') 
        g_tracer%btf    = w0*g_tracer%btf + w1*array
     case ('btm_reservoir') 
@@ -2349,6 +2487,14 @@ contains
        g_tracer%deltap    = value 
     case ('kw') 
        g_tracer%kw        = value 
+    case ('kw_asym')                    ! YZ: D25, 19/06/2025 {
+       g_tracer%kw_asym   = value
+    case ('f_asym')
+       g_tracer%f_asym    = value
+    case ('u10')
+       g_tracer%u10       = value
+    case ('ust')
+       g_tracer%ust       = value       ! } YZ
     case ('btf') 
        g_tracer%btf       = value 
     case ('trunoff') 
@@ -2947,6 +3093,33 @@ contains
                is_in=g_tracer_com%isc, js_in=g_tracer_com%jsc,&
                ie_in=g_tracer_com%iec, je_in=g_tracer_com%jec )
        endif
+
+       ! YZ: D25, 19/06/2025 {
+       if (g_tracer%diag_id_kw_asym .gt. 0 .and. _ALLOCATED(g_tracer%kw_asym)) then
+          used = g_send_data(g_tracer%diag_id_kw_asym, g_tracer%kw_asym(:,:), model_time,&
+               rmask = g_tracer_com%grid_tmask(:,:,1),&
+               is_in=g_tracer_com%isc, js_in=g_tracer_com%jsc,&
+               ie_in=g_tracer_com%iec, je_in=g_tracer_com%jec )
+       endif
+       if (g_tracer%diag_id_f_asym .gt. 0 .and. _ALLOCATED(g_tracer%f_asym)) then
+          used = g_send_data(g_tracer%diag_id_f_asym, g_tracer%f_asym(:,:), model_time,&
+               rmask = g_tracer_com%grid_tmask(:,:,1),&
+               is_in=g_tracer_com%isc, js_in=g_tracer_com%jsc,&
+               ie_in=g_tracer_com%iec, je_in=g_tracer_com%jec )
+       endif
+       if (g_tracer%diag_id_u10 .gt. 0 .and. _ALLOCATED(g_tracer%u10)) then
+          used = g_send_data(g_tracer%diag_id_u10, g_tracer%u10(:,:),model_time,&
+               rmask = g_tracer_com%grid_tmask(:,:,1),&
+               is_in=g_tracer_com%isc, js_in=g_tracer_com%jsc,&
+               ie_in=g_tracer_com%iec, je_in=g_tracer_com%jec )
+       endif
+       if (g_tracer%diag_id_ust .gt. 0 .and. _ALLOCATED(g_tracer%ust)) then
+          used = g_send_data(g_tracer%diag_id_ust, g_tracer%ust(:,:),model_time,&
+               rmask = g_tracer_com%grid_tmask(:,:,1),&
+               is_in=g_tracer_com%isc, js_in=g_tracer_com%jsc,&
+               ie_in=g_tracer_com%iec, je_in=g_tracer_com%jec )
+       endif
+       ! } YZ
 
        if (g_tracer%diag_id_btf .gt. 0 .and. _ALLOCATED(g_tracer%btf)) then
           used = g_send_data(g_tracer%diag_id_btf, g_tracer%btf(:,:), model_time,&
