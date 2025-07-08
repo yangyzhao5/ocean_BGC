@@ -1498,10 +1498,10 @@ contains
     ! << Respiration-driven CaCO3 dissolution ratios from param file
     call get_param(param_file, "generic_COBALT", "resp_ca_2_n_arag", cobalt%resp_ca_2_n_arag, &
                    "ratio of aragonite dissolution to organic matter remineralization (respiration-driven)", &
-                   units="mol dissolved arag mol org. C-1", default = 0.0, scale = c2n)
+                   units="(mol org. C/kg)-1", default = 0.0, scale = c2n)  ! YZ: 07/07/2025
     call get_param(param_file, "generic_COBALT", "resp_ca_2_n_calc", cobalt%resp_ca_2_n_calc, &
                    "ratio of calcite dissolution to organic matter remineralization (respiration-driven)", &
-                   units="mol dissolved calc mol org. C-1", default = 0.0, scale = c2n)
+                   units="(mol org. C/kg)-1", default = 0.0, scale = c2n)  ! YZ: 07/07/2025
     ! >>          
 
     ! Organic matter remineralization: Oxygen and temperature dependence follows Laufkotter et al. (2017).
@@ -4910,9 +4910,11 @@ contains
     if (cobalt%do_resp_ca_diss) then
         do k=1,nk ; do j=jsc,jec ; do i=isc,iec  !{
            cobalt%jdiss_cadet_arag(i,j,k) = cobalt%jdiss_cadet_arag(i,j,k) + &
-                                            cobalt%resp_ca_2_n_arag * cobalt%jremin_ndet(i,j,k)
+                                            cobalt%resp_ca_2_n_arag * cobalt%f_cadet_arag(i,j,k) * &
+                                            cobalt%jremin_ndet(i,j,k)  ! YZ: 07/07/2025
            cobalt%jdiss_cadet_calc(i,j,k) = cobalt%jdiss_cadet_calc(i,j,k) + &
-                                            cobalt%resp_ca_2_n_calc * cobalt%jremin_ndet(i,j,k)
+                                            cobalt%resp_ca_2_n_calc * cobalt%f_cadet_calc(i,j,k) * &
+                                            cobalt%jremin_ndet(i,j,k)  ! YZ: 07/07/2025
         enddo; enddo; enddo  !} i,j,k
     endif     
     ! >> 
