@@ -1508,6 +1508,11 @@ module COBALT_reg_diag
     bact(1)%id_temp_lim = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
          init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
 
+    ! YZ: 07/07/2025 {
+    vardesc_temp = vardesc("no3lim_Bact","Nitrate limitation of bacteria",'h','L','s','dimensionless','f')
+    bact(1)%id_no3lim = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1) ! } YZ
+
     !
     ! Register general COBALT diagnostics
     !
