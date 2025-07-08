@@ -89,6 +89,15 @@
 !       nmdz: medium zooplankton nitrogen
 !       nlgz: large zooplankton nitrogen
 !
+! YZ: R2OMIP, 07/07/2025 {
+!   COBALTv3-R2OMIP: Yangyang Zhao (yangyzhao@princeton.edu)
+!   	implement the RIVR2O river loads for the River2Ocean Model Intercomparison Project (R2OMIP)
+!   	with a new tracer (i.e., terrestrial semi-labile dissolved organic nitrogen, tsldon).
+!
+!   	1 newly added tracer:
+!   	tsldon: terrestrial semi-labile dissolved organic nitrogen
+! } YZ
+!
 !<NAMELIST NAME="generic_COBALT_nml">
 !
 !  <DATA NAME="do_14c" TYPE="logical">
@@ -97,6 +106,12 @@
 ! by CaCO3 at the current time, but cycles only through the soft tissue.
 ! This is a mistake that will be fixed later.
 !  </DATA>
+!
+! YZ: R2OMIP, 07/07/2025 {
+!  <DATA NAME="do_r2omip" TYPE="logical">
+!  If true, then simulate for R2OMIP. Includes 1 prognostic tracers, TSLDON.
+!  </DATA>
+! } YZ
 !
 !</NAMELIST>
 !
@@ -180,7 +195,7 @@ module generic_COBALT
                                              !! in generic_COBALT_nml.
 
   namelist /generic_COBALT_nml/ co2_calc, do_14c, do_nh3_atm_ocean_exchange, scheme_nitrif, debug, &
-     do_vertfill_pre,imbalance_tolerance,as_param_cobalt
+     do_vertfill_pre,imbalance_tolerance,as_param_cobalt,do_r2omip ! YZ: R2OMIP, 07/07/2025
   
   !
   ! Array allocations and flux calculations assume that phyto(1) is the
@@ -253,6 +268,11 @@ contains
     if (do_14c) then
       write (stdoutunit,*) trim(note_header), 'Simulating radiocarbon'
     endif
+
+    ! YZ: R2OMIP, 07/07/2025 {
+    if (do_r2omip) then !{
+      write (stdoutunit,*) trim(note_header), 'Simulating for R2OMIP'
+    endif ! } YZ
 
     if (trim(co2_calc) == 'mocsy') then
       write (stdoutunit,*) trim(note_header), 'Using Mocsy CO2 routine'
@@ -1662,6 +1682,43 @@ contains
     ! background concentration of refractory DOC used for diagnostics that request and estimate of the total DOC
     call get_param(param_file, "generic_COBALT", "doc_background", cobalt%doc_background, &
                   "background refractory dissolved organic carbon concentration", units="moles kg-1", default=4.0e-5)
+    ! YZ: R2OMIP, 18/06/2025
+    !
+    !---------------------------------------------------------------------
+    ! Terrestrial Dissolved and Particulate Organic Material
+    !---------------------------------------------------------------------
+    !
+    ! The lability of terrestrial DOM is highly uncertain. A first order
+    ! assessment is that ~70% is labile (degradation lifetime of days),
+    ! ~30% is semi-labile (lifetime ~ 1.5 years) and a very small fraction
+    ! of semi-refractory (~3% with a lifetime ~ 20 years) that we lumped
+    ! with the semi-labile for simplicity (pers. communication Sinikka Lennartz,
+    ! Rob Spencer, Thorsten Dittmar)
+    ! Similar to marine SLDON and SLDOP, the degradation lifetime of TSLDOP
+    ! is assumed to equal to that of TSLDON
+    ! Terrestrial DOM has a molar C:N:P ratio of 2583:103:1, significantly
+    ! higher than the C:N:P of marine DOM (Meybeck et al 1982, Compton et
+    ! al., 2000, Ma et al., in prep)
+    ! Recycled river POC, not buried on shelves, should be injected as DOC in the 
+    ! model (i.e. 44% of terrestrial POC is assumed to be buried on shelves and 
+    ! remaining 56% is assumed to be remineralized and carried as DOC by ocean 
+    ! circulation, Burdige et al 2005). The C:N:P of terrestrial POM (276:25:1, 
+    ! Meybeck 1982, Compton et al 2000) is closer to marine DOM than river DOM, 
+    ! and can therefore be injected directly in the semi-labile marine DOM pool.
+    !
+    call get_param(param_file, "generic_COBALT", "c_2_n_tp", cobalt%c_2_n_tp, &
+                  "carbon to nitrogen ratio of terrestrial particulate organic matter", units="mol C mol N-1", &
+                  default= 276.0 / 25.0)
+    call get_param(param_file, "generic_COBALT", "c_2_n_td", cobalt%c_2_n_td, &
+                  "carbon to nitrogen ratio of terrestrial dissolved organic matter", units="mol C mol N-1", &
+                  default= 2583.0 / 103.0)
+    call get_param(param_file, "generic_COBALT", "p_2_n_td", cobalt%p_2_n_td, &
+                  "phosphorus to nitrogen ratio of terrestrial dissolved organic matter", units="mol P mol N-1", &
+                  default= 1.0 / 103.0)
+    call get_param(param_file, "generic_COBALT", "gamma_tsldon", cobalt%gamma_tsldon, &
+                  "rate constant for converting terrestrial semi-labile DON to labile DON", units="years-1", &
+                  default= 1.0/1.5, scale=I_spery)
+    ! } YZ
     !
     !-----------------------------------------------------------------------
     ! Nitrification / Anammox
@@ -2261,6 +2318,20 @@ contains
          units      = 'mol/kg',                   &
          prog       = .true.)
       endif                                                   !RADIOCARBON>>
+
+     ! YZ: R2OMIP, 07/07/2025 {
+     !
+     !   	TSLDON (Terrestrial semilabile dissolved organic nitrogen)
+     !
+     if (do_r2omip) then !{
+     call g_tracer_add(tracer_list,package_name,&
+        name       = 'tsldon',                  &
+        longname   = 'terrestrial semilabile DON', &
+        flux_runoff= .true.,                    &
+        units      = 'mol/kg',                  &
+        prog       = .true.,                    &
+        flux_param = (/ 1.0e-3 /))
+    endif !} ! } YZ
 
     !===========================================================
     !Diagnostic Tracers
@@ -3215,7 +3286,11 @@ contains
     call g_tracer_get_values(tracer_list,'sldop'   ,'field',cobalt%f_sldop   ,isd,jsd,positive=.true.)
     call g_tracer_get_values(tracer_list,'sidet'  ,'field',cobalt%f_sidet    ,isd,jsd,positive=.true.)
     call g_tracer_get_values(tracer_list,'sio4'   ,'field',cobalt%f_sio4     ,isd,jsd,positive=.true.)
-!
+    ! YZ: R2OMIP, 07/07/2025 {
+    if (do_r2omip) then !{
+      call g_tracer_get_values(tracer_list,'tsldon'   ,'field',cobalt%f_tsldon   ,isd,jsd,positive=.true.)
+    endif !} ! } YZ
+    !
     ! phytoplankton fields
     !
     call g_tracer_get_values(tracer_list,'fedi'   ,'field',phyto(DIAZO)%f_fe(:,:,:) ,isd,jsd,positive=.true.)
@@ -4868,6 +4943,10 @@ contains
        ! Calculate the ligand concentration
        cobalt%ligand(i,j,k) = cobalt%felig_bkg + cobalt%felig_2_don*(cobalt%f_sldon(i,j,k) + &
             cobalt%f_srdon(i,j,k) + cobalt%f_ldon(i,j,k))
+       ! YZ: R2OMIP, 07/07/2025 {
+       if (do_r2omip) then !{
+         cobalt%ligand(i,j,k) = cobalt%ligand(i,j,k) + cobalt%felig_2_don*cobalt%f_tsldon(i,j,k)
+       endif !} ! } YZ
 
        ! Solve for the free iron from the following system of three equations:
        !         (1) kfe_eq_lig = [FeL] / ([feprime] * [L])
@@ -5304,6 +5383,11 @@ contains
        call g_tracer_get_pointer(tracer_list,'do14c','field',cobalt%p_do14c)
     endif
 
+    ! YZ: R2OMIP, 07/07/2025 {
+    if (do_r2omip) then !{
+       call g_tracer_get_pointer(tracer_list,'tsldon','field',cobalt%p_tsldon)
+    endif !} ! } YZ
+
     ! CAS calculate total N and P before source/sink
     ! calculate internal sources (those not applied as air-sea or benthos
     ! exchanges) to close the balance
@@ -5325,6 +5409,10 @@ contains
                     cobalt%p_srdon(i,j,k,tau) +  cobalt%p_ndet(i,j,k,tau) + &
                     cobalt%p_nsmz(i,j,k,tau) + cobalt%p_nmdz(i,j,k,tau) + &
                     cobalt%p_nlgz(i,j,k,tau))*grid_tmask(i,j,k)
+         ! YZ: R2OMIP, 07/07/2025 {
+         if (do_r2omip) then !{
+            pre_totn(i,j,k) = pre_totn(i,j,k) + cobalt%p_tsldon(i,j,k,tau)*grid_tmask(i,j,k)  
+         endif !} ! } YZ
          net_srcn(i,j,k) = (phyto(DIAZO)%juptake_n2(i,j,k) - cobalt%jno3denit_wc(i,j,k) - &
                     cobalt%jnamx(i,j,k) + cobalt%jno3_iceberg(i,j,k))*dt*grid_tmask(i,j,k)
          ! << Apply neritic CaCO3 burial contribution to net carbon source/sink term
@@ -5340,6 +5428,11 @@ contains
                     cobalt%p_srdon(i,j,k,tau) +  cobalt%p_ndet(i,j,k,tau) + &
                     cobalt%p_nsmz(i,j,k,tau) + cobalt%p_nmdz(i,j,k,tau) + &
                     cobalt%p_nlgz(i,j,k,tau)))*grid_tmask(i,j,k)
+         ! YZ: R2OMIP, 07/07/2025 {
+         if (do_r2omip) then !{
+            pre_totc(i,j,k) = pre_totc(i,j,k) + cobalt%c_2_n_td*cobalt%p_tsldon(i,j,k,tau)*&
+                    grid_tmask(i,j,k)
+         endif !} ! } YZ
          pre_totp(i,j,k) = (cobalt%p_po4(i,j,k,tau) + cobalt%p_pdi(i,j,k,tau) + &
                     cobalt%p_plg(i,j,k,tau) + cobalt%p_pmd(i,j,k,tau) + cobalt%p_psm(i,j,k,tau) + &
                     cobalt%p_ldop(i,j,k,tau) + cobalt%p_sldop(i,j,k,tau) + &
@@ -5348,6 +5441,11 @@ contains
                     cobalt%p_nmdz(i,j,k,tau)*zoo(2)%q_p_2_n + &
                     cobalt%p_nlgz(i,j,k,tau)*zoo(3)%q_p_2_n + &
                     bact(1)%q_p_2_n*cobalt%p_nbact(i,j,k,tau))*grid_tmask(i,j,k)
+         ! YZ: R2OMIP, 07/07/2025 {
+         if (do_r2omip) then !{
+            pre_totp(i,j,k) = pre_totp(i,j,k) + cobalt%p_2_n_td*cobalt%p_tsldon(i,j,k,tau)*&
+                    grid_tmask(i,j,k)
+         endif !} ! } YZ
          net_srcp(i,j,k) = cobalt%jpo4_iceberg(i,j,k)*dt*grid_tmask(i,j,k)
          pre_totfe(i,j,k) = (cobalt%p_fed(i,j,k,tau) + cobalt%p_fedi(i,j,k,tau) + &
                     cobalt%p_felg(i,j,k,tau) + cobalt%p_femd(i,j,k,tau) + cobalt%p_fesm(i,j,k,tau) + &
@@ -5555,6 +5653,14 @@ contains
                             phyto(LARGE)%juptake_nh4(i,j,k) - phyto(MEDIUM)%juptake_nh4(i,j,k) - &
                             phyto(SMALL)%juptake_nh4(i,j,k) - &
                             cobalt%juptake_nh4nitrif(i,j,k) - cobalt%juptake_nh4amx(i,j,k)
+       ! YZ: R2OMIP, 07/07/2025 {
+       ! add excess N from degradation of terrrestrial SLDOM
+       ! NOTE: jtsldon is negative
+       if (do_r2omip) then !{
+       cobalt%jnh4(i,j,k) = cobalt%jnh4(i,j,k) + cobalt%gamma_tsldon*cobalt%expkT(i,j,k)*&
+                            cobalt%f_tsldon(i,j,k) * (1.0 - cobalt%p_2_n_td * &
+                            cobalt%f_ldon(i,j,k)/(cobalt%f_ldop(i,j,k) + epsln))
+       endif !} ! } YZ
        cobalt%p_nh4(i,j,k,tau) = cobalt%p_nh4(i,j,k,tau) + cobalt%jnh4(i,j,k) * dt * grid_tmask(i,j,k)
        !
        ! PO4
@@ -5650,6 +5756,15 @@ contains
        cobalt%jldon(i,j,k) = cobalt%jprod_ldon(i,j,k) + &
                              cobalt%gamma_sldon*cobalt%expkT(i,j,k)*cobalt%f_sldon(i,j,k) + &
                              cobalt%gamma_srdon*cobalt%f_srdon(i,j,k) - bact(1)%juptake_ldon(i,j,k)
+       ! YZ: R2OMIP, 07/07/2025 {
+       ! add degradation of terrestrial semilabile dissolved organic nitrogen following
+       ! the N:P stoichiometry of marine LDOM and the excess N is routed to DIN (i.e., NH4)
+       ! Note: the N:P stoichiometry of marine LDOM is not fixed, using ldon/ldop instead
+       if (do_r2omip) then !{
+       cobalt%jldon(i,j,k) = cobalt%jldon(i,j,k) + cobalt%gamma_tsldon*cobalt%expkT(i,j,k)*&
+                             cobalt%f_tsldon(i,j,k) * cobalt%p_2_n_td*cobalt%f_ldon(i,j,k)/&
+                             (cobalt%f_ldop(i,j,k) + epsln)
+       endif !} ! } YZ
        cobalt%p_ldon(i,j,k,tau) = cobalt%p_ldon(i,j,k,tau) +  cobalt%jldon(i,j,k)*dt*               &
             grid_tmask(i,j,k)
        !
@@ -5658,6 +5773,13 @@ contains
        cobalt%jldop(i,j,k) = cobalt%jprod_ldop(i,j,k) + &
                              cobalt%gamma_sldop*cobalt%expkT(i,j,k)*cobalt%f_sldop(i,j,k) + &
                              cobalt%gamma_srdop*cobalt%f_srdop(i,j,k) - bact(1)%juptake_ldop(i,j,k)
+       ! YZ: R2OMIP, 07/07/2025 {
+       ! add degradation of terrestrial semilabile dissolved organic phosphorus
+       ! the degradation lifetime of TSLDOP is assumed to equal to that of TSLDON
+       if (do_r2omip) then !{
+          cobalt%jldop(i,j,k) = cobalt%jldop(i,j,k) + cobalt%gamma_tsldon*cobalt%expkT(i,j,k)*&
+                                cobalt%f_tsldon(i,j,k)*cobalt%p_2_n_td
+       endif !} ! } YZ
        cobalt%p_ldop(i,j,k,tau) = cobalt%p_ldop(i,j,k,tau) +  cobalt%jldop(i,j,k)*dt*               &
                              grid_tmask(i,j,k)
        !
@@ -5686,6 +5808,15 @@ contains
        cobalt%jsrdop(i,j,k) = cobalt%jprod_srdop(i,j,k) - cobalt%gamma_srdop * cobalt%f_srdop(i,j,k)
        cobalt%p_srdop(i,j,k,tau) = cobalt%p_srdop(i,j,k,tau) + cobalt%jsrdop(i,j,k) * dt *                &
                                   grid_tmask(i,j,k)
+       ! YZ: R2OMIP, 07/07/2025 {
+       !
+       ! Terrestrial Semilabile Dissolved Organic Nitrogen
+       !
+       if (do_r2omip) then !{
+          cobalt%jtsldon(i,j,k) = - cobalt%gamma_tsldon*cobalt%expkT(i,j,k)*cobalt%f_tsldon(i,j,k)
+          cobalt%p_tsldon(i,j,k,tau) = cobalt%p_tsldon(i,j,k,tau) + cobalt%jtsldon(i,j,k) * dt *         &
+                                       grid_tmask(i,j,k)
+       endif !} ! } YZ
     enddo; enddo ; enddo  !} i,j,k
     !
     !     O2
@@ -5723,6 +5854,12 @@ contains
           phyto(DIAZO)%juptake_nh4(i,j,k) - phyto(LARGE)%juptake_nh4(i,j,k) - &
           phyto(MEDIUM)%juptake_nh4(i,j,k) - &
           phyto(SMALL)%juptake_nh4(i,j,k) - 2.0 * cobalt%juptake_nh4nitrif(i,j,k)
+       ! YZ: R2OMIP, 07/07/2025 {
+       ! Modify the alkalinity changes due to degradation of tsldon to ldon with excess NH4+
+       if (do_r2omip) then !{
+          cobalt%jalk(i,j,k) = cobalt%jalk(i,j,k) + cobalt%jtsldon(i,j,k) * (1.0 - cobalt%p_2_n_td * &
+                               cobalt%f_ldon(i,j,k)/(cobalt%f_ldop(i,j,k) + epsln))
+       endif !} ! } YZ
 
        cobalt%p_alk(i,j,k,tau) = cobalt%p_alk(i,j,k,tau) + cobalt%jalk(i,j,k) * dt * grid_tmask(i,j,k)
        !
@@ -5738,6 +5875,13 @@ contains
           cobalt%jdiss_cadet_arag(i,j,k) + cobalt%jdiss_cadet_calc(i,j,k) - &
           cobalt%jprod_cadet_arag(i,j,k) - cobalt%jprod_cadet_calc(i,j,k) - &
           cobalt%jdic_caco3_nerbur(i,j,k))
+       ! YZ: R2OMIP, 07/07/2025 {
+       ! add excess C from degradation of terrestrial semilabile DOM
+       ! NOTE: jtsldon is negative
+       if (do_r2omip) then !{
+          cobalt%jdic(i,j,k) = cobalt%jdic(i,j,k) - cobalt%jtsldon(i,j,k) * (cobalt%c_2_n_td - &
+                               cobalt%p_2_n_td * cobalt%f_ldon(i,j,k)/(cobalt%f_ldop(i,j,k) + epsln) * cobalt%c_2_n)
+       endif !} ! } YZ
 
        cobalt%p_dic(i,j,k,tau) = cobalt%p_dic(i,j,k,tau) + cobalt%jdic(i,j,k) * dt * grid_tmask(i,j,k)
     enddo; enddo ; enddo !} i,j,k
@@ -5868,6 +6012,10 @@ contains
                     cobalt%p_srdon(i,j,k,tau) +  cobalt%p_ndet(i,j,k,tau) + &
                     cobalt%p_nsmz(i,j,k,tau) + cobalt%p_nmdz(i,j,k,tau) + &
                     cobalt%p_nlgz(i,j,k,tau))*grid_tmask(i,j,k)
+         ! YZ: R2OMIP, 07/07/2025 {
+         if (do_r2omip) then !{
+            post_totn(i,j,k) = post_totn(i,j,k) + cobalt%p_tsldon(i,j,k,tau)*grid_tmask(i,j,k)
+         endif !} ! } YZ
          imbal = (post_totn(i,j,k) - pre_totn(i,j,k) - net_srcn(i,j,k))*86400.0/dt*1.03e6
          if (abs(imbal).gt.imbalance_tolerance) then
            call mpp_error(FATAL,&
@@ -5882,7 +6030,11 @@ contains
                     cobalt%p_srdon(i,j,k,tau) +  cobalt%p_ndet(i,j,k,tau) + &
                     cobalt%p_nsmz(i,j,k,tau) + cobalt%p_nmdz(i,j,k,tau) + &
                     cobalt%p_nlgz(i,j,k,tau)))*grid_tmask(i,j,k)
-        imbal = (post_totc(i,j,k) - pre_totc(i,j,k) - net_srcc(i,j,k))*86400.0/dt*1.03e6
+         ! YZ: R2OMIP, 07/07/2025 {
+         if (do_r2omip) then !{
+            post_totc(i,j,k) = post_totc(i,j,k) + cobalt%c_2_n_td*cobalt%p_tsldon(i,j,k,tau)*grid_tmask(i,j,k)
+         endif !} ! } YZ
+         imbal = (post_totc(i,j,k) - pre_totc(i,j,k) - net_srcc(i,j,k))*86400.0/dt*1.03e6
          if (abs(imbal).gt.imbalance_tolerance) then
            call mpp_error(FATAL,&
            '==>biological source/sink imbalance (generic_COBALT_update_from_source): Carbon')
@@ -5896,6 +6048,10 @@ contains
                     cobalt%p_nmdz(i,j,k,tau)*zoo(2)%q_p_2_n + &
                     cobalt%p_nlgz(i,j,k,tau)*zoo(3)%q_p_2_n + &
                     bact(1)%q_p_2_n*cobalt%p_nbact(i,j,k,tau))*grid_tmask(i,j,k)
+         ! YZ: R2OMIP, 07/07/2025 {
+         if (do_r2omip) then !{
+            post_totp(i,j,k) = post_totp(i,j,k) + cobalt%p_2_n_td*cobalt%p_tsldon(i,j,k,tau)*grid_tmask(i,j,k)
+         endif !} ! } YZ
          imbal = (post_totp(i,j,k) - pre_totp(i,j,k) - net_srcp(i,j,k))*86400.0/dt*1.03e6
          if (abs(imbal).gt.imbalance_tolerance) then
            call mpp_error(FATAL,&
@@ -6004,10 +6160,20 @@ contains
          cobalt%p_nmd(:,:,:,tau) + cobalt%p_nsm(:,:,:,tau) + cobalt%p_nbact(:,:,:,tau) + cobalt%p_ldon(:,:,:,tau) + &
          cobalt%p_sldon(:,:,:,tau) + cobalt%p_srdon(:,:,:,tau) + cobalt%p_ndet(:,:,:,tau) + cobalt%p_nsmz(:,:,:,tau) + &
          cobalt%p_nmdz(:,:,:,tau) + cobalt%p_nlgz(:,:,:,tau))) * rho_dzt(:,:,:)
+    ! YZ: R2OMIP, 07/07/2025 {
+    if (do_r2omip) then
+       cobalt%tot_layer_int_c(:,:,:) = cobalt%tot_layer_int_c(:,:,:) + cobalt%c_2_n_td * cobalt%p_tsldon(:,:,:,tau) * &
+            rho_dzt(:,:,:)
+    endif !} ! } YZ
 
     ! dissolved organic component also includes an optional background doc
     cobalt%tot_layer_int_doc(:,:,:) = (cobalt%c_2_n * (cobalt%p_ldon(:,:,:,tau) + cobalt%p_sldon(:,:,:,tau) + &
          cobalt%p_srdon(:,:,:,tau)) + cobalt%doc_background) * rho_dzt(:,:,:)
+    ! YZ: R2OMIP, 07/07/2025 {
+    if (do_r2omip) then
+       cobalt%tot_layer_int_doc(:,:,:) = cobalt%tot_layer_int_doc(:,:,:) + cobalt%c_2_n_td * cobalt%p_tsldon(:,:,:,tau) * &
+            rho_dzt(:,:,:)
+    endif !} ! } YZ
 
     cobalt%tot_layer_int_poc(:,:,:) = (cobalt%p_ndi(:,:,:,tau) + cobalt%p_nlg(:,:,:,tau) + cobalt%p_nmd(:,:,:,tau) + &
          cobalt%p_nsm(:,:,:,tau) + cobalt%p_nbact(:,:,:,tau) + cobalt%p_ndet(:,:,:,tau) + cobalt%p_nsmz(:,:,:,tau) + &
@@ -6022,12 +6188,21 @@ contains
          cobalt%p_nlg(:,:,:,tau) + cobalt%p_nmd(:,:,:,tau) + cobalt%p_nsm(:,:,:,tau) + cobalt%p_nbact(:,:,:,tau) + &
          cobalt%p_ldon(:,:,:,tau) + cobalt%p_sldon(:,:,:,tau) + cobalt%p_srdon(:,:,:,tau) +  cobalt%p_ndet(:,:,:,tau) + &
          cobalt%p_nsmz(:,:,:,tau) + cobalt%p_nmdz(:,:,:,tau) + cobalt%p_nlgz(:,:,:,tau)) * rho_dzt(:,:,:)
+    ! YZ: R2OMIP, 07/07/2025 {
+    if (do_r2omip) then
+       cobalt%tot_layer_int_n(:,:,:) = cobalt%tot_layer_int_n(:,:,:) + cobalt%p_tsldon(:,:,:,tau) * rho_dzt(:,:,:)
+    endif !} ! } YZ
 
     cobalt%tot_layer_int_p(:,:,:) = (cobalt%p_po4(:,:,:,tau) + cobalt%p_pdi(:,:,:,tau) + cobalt%p_plg(:,:,:,tau) + &
          cobalt%p_pmd(:,:,:,tau) + cobalt%p_psm(:,:,:,tau) + cobalt%p_ldop(:,:,:,tau) + cobalt%p_sldop(:,:,:,tau) + &
          cobalt%p_srdop(:,:,:,tau) + cobalt%p_pdet(:,:,:,tau) + bact(1)%q_p_2_n*cobalt%p_nbact(:,:,:,tau) + &
          zoo(1)%q_p_2_n*cobalt%p_nsmz(:,:,:,tau) + zoo(2)%q_p_2_n*cobalt%p_nmdz(:,:,:,tau) + &
          zoo(3)%q_p_2_n*cobalt%p_nlgz(:,:,:,tau))*rho_dzt(:,:,:)
+    ! YZ: R2OMIP, 07/07/2025 {
+    if (do_r2omip) then
+       cobalt%tot_layer_int_p(:,:,:) = cobalt%tot_layer_int_p(:,:,:) + cobalt%p_2_n_td * cobalt%p_tsldon(:,:,:,tau) * &
+            rho_dzt(:,:,:)
+    endif !} ! } YZ
 
     cobalt%tot_layer_int_si(:,:,:) = (cobalt%p_sio4(:,:,:,tau) + cobalt%p_silg(:,:,:,tau) + &
          cobalt%p_simd(:,:,:,tau) + cobalt%p_sidet(:,:,:,tau)) * rho_dzt(:,:,:)
@@ -6583,16 +6758,28 @@ contains
     call g_tracer_get_values(tracer_list,'nh4','wetdep',cobalt%wet_nh4,isd,jsd)
     call g_tracer_get_values(tracer_list,'po4','drydep',cobalt%dry_po4,isd,jsd)
     call g_tracer_get_values(tracer_list,'po4','wetdep',cobalt%wet_po4,isd,jsd)
-    call g_tracer_get_values(tracer_list,'ldon','runoff_tracer_flux',cobalt%runoff_flux_ldon,isd,jsd)
+!    call g_tracer_get_values(tracer_list,'ldon','runoff_tracer_flux',cobalt%runoff_flux_ldon,isd,jsd)
     call g_tracer_get_values(tracer_list,'sldon','runoff_tracer_flux',cobalt%runoff_flux_sldon,isd,jsd)
-    call g_tracer_get_values(tracer_list,'srdon','runoff_tracer_flux',cobalt%runoff_flux_srdon,isd,jsd)
-    call g_tracer_get_values(tracer_list,'ndet','runoff_tracer_flux',cobalt%runoff_flux_ndet,isd,jsd)
-    call g_tracer_get_values(tracer_list,'pdet','runoff_tracer_flux',cobalt%runoff_flux_pdet,isd,jsd)
+!    call g_tracer_get_values(tracer_list,'srdon','runoff_tracer_flux',cobalt%runoff_flux_srdon,isd,jsd)
+!    call g_tracer_get_values(tracer_list,'ndet','runoff_tracer_flux',cobalt%runoff_flux_ndet,isd,jsd)
+!    call g_tracer_get_values(tracer_list,'pdet','runoff_tracer_flux',cobalt%runoff_flux_pdet,isd,jsd)
     call g_tracer_get_values(tracer_list,'po4','runoff_tracer_flux',cobalt%runoff_flux_po4,isd,jsd)
-    call g_tracer_get_values(tracer_list,'ldop','runoff_tracer_flux',cobalt%runoff_flux_ldop,isd,jsd)
+!    call g_tracer_get_values(tracer_list,'ldop','runoff_tracer_flux',cobalt%runoff_flux_ldop,isd,jsd)
     call g_tracer_get_values(tracer_list,'sldop','runoff_tracer_flux',cobalt%runoff_flux_sldop,isd,jsd)
-    call g_tracer_get_values(tracer_list,'srdop','runoff_tracer_flux',cobalt%runoff_flux_srdop,isd,jsd)
-! JGJ: Added for CMIP6
+!    call g_tracer_get_values(tracer_list,'srdop','runoff_tracer_flux',cobalt%runoff_flux_srdop,isd,jsd)
+    ! YZ: R2OMIP, 07/07/2025 {
+    if (do_r2omip) then !{
+      call g_tracer_get_values(tracer_list,'tsldon','runoff_tracer_flux',cobalt%runoff_flux_tsldon,isd,jsd)
+    else
+      call g_tracer_get_values(tracer_list,'ldon','runoff_tracer_flux',cobalt%runoff_flux_ldon,isd,jsd)
+      call g_tracer_get_values(tracer_list,'srdon','runoff_tracer_flux',cobalt%runoff_flux_srdon,isd,jsd)
+      call g_tracer_get_values(tracer_list,'ndet','runoff_tracer_flux',cobalt%runoff_flux_ndet,isd,jsd)
+      call g_tracer_get_values(tracer_list,'pdet','runoff_tracer_flux',cobalt%runoff_flux_pdet,isd,jsd)
+      call g_tracer_get_values(tracer_list,'ldop','runoff_tracer_flux',cobalt%runoff_flux_ldop,isd,jsd)
+      call g_tracer_get_values(tracer_list,'srdop','runoff_tracer_flux',cobalt%runoff_flux_srdop,isd,jsd)
+    endif !} ! } YZ
+
+    ! JGJ: Added for CMIP6
     call g_tracer_get_values(tracer_list,'dic','stf_gas',cobalt%stf_gas_dic,isd,jsd)
     call g_tracer_get_values(tracer_list,'o2','stf_gas',cobalt%stf_gas_o2,isd,jsd)
     call g_tracer_get_values(tracer_list,'dic','deltap',cobalt%deltap_dic,isd,jsd)
@@ -7552,15 +7739,15 @@ contains
       allocate(cobalt%runoff_flux_lith(isd:ied, jsd:jed));     cobalt%runoff_flux_lith=0.0
       allocate(cobalt%runoff_flux_fed(isd:ied, jsd:jed));      cobalt%runoff_flux_fed=0.0
       allocate(cobalt%runoff_flux_no3(isd:ied, jsd:jed));      cobalt%runoff_flux_no3=0.0
-      allocate(cobalt%runoff_flux_ldon(isd:ied, jsd:jed));     cobalt%runoff_flux_ldon=0.0
+!      allocate(cobalt%runoff_flux_ldon(isd:ied, jsd:jed));     cobalt%runoff_flux_ldon=0.0
       allocate(cobalt%runoff_flux_sldon(isd:ied, jsd:jed));    cobalt%runoff_flux_sldon=0.0
-      allocate(cobalt%runoff_flux_srdon(isd:ied, jsd:jed));    cobalt%runoff_flux_srdon=0.0
-      allocate(cobalt%runoff_flux_ndet(isd:ied, jsd:jed));     cobalt%runoff_flux_ndet=0.0
-      allocate(cobalt%runoff_flux_pdet(isd:ied, jsd:jed));     cobalt%runoff_flux_pdet=0.0
+!      allocate(cobalt%runoff_flux_srdon(isd:ied, jsd:jed));    cobalt%runoff_flux_srdon=0.0
+!      allocate(cobalt%runoff_flux_ndet(isd:ied, jsd:jed));     cobalt%runoff_flux_ndet=0.0
+!      allocate(cobalt%runoff_flux_pdet(isd:ied, jsd:jed));     cobalt%runoff_flux_pdet=0.0
       allocate(cobalt%runoff_flux_po4(isd:ied, jsd:jed));      cobalt%runoff_flux_po4=0.0
-      allocate(cobalt%runoff_flux_ldop(isd:ied, jsd:jed));     cobalt%runoff_flux_ldop=0.0
+!      allocate(cobalt%runoff_flux_ldop(isd:ied, jsd:jed));     cobalt%runoff_flux_ldop=0.0
       allocate(cobalt%runoff_flux_sldop(isd:ied, jsd:jed));    cobalt%runoff_flux_sldop=0.0
-      allocate(cobalt%runoff_flux_srdop(isd:ied, jsd:jed));    cobalt%runoff_flux_srdop=0.0
+!      allocate(cobalt%runoff_flux_srdop(isd:ied, jsd:jed));    cobalt%runoff_flux_srdop=0.0
       allocate(cobalt%dry_fed(isd:ied, jsd:jed));              cobalt%dry_fed=0.0
       allocate(cobalt%wet_fed(isd:ied, jsd:jed));              cobalt%wet_fed=0.0
       allocate(cobalt%dry_lith(isd:ied, jsd:jed));             cobalt%dry_lith=0.0
@@ -7576,7 +7763,19 @@ contains
       allocate(cobalt%deltap_dic(isd:ied, jsd:jed));           cobalt%deltap_dic=0.0
       allocate(cobalt%deltap_o2(isd:ied, jsd:jed));            cobalt%deltap_o2=0.0
       allocate(cobalt%mld_aclm(isd:ied, jsd:jed));             cobalt%mld_aclm=0.0
-
+   ! YZ: R2OMIP, 07/07/2025 {
+   if (do_r2omip) then !{
+      allocate(cobalt%f_tsldon(isd:ied, jsd:jed, 1:nk));       cobalt%f_tsldon=0.0
+      allocate(cobalt%jtsldon(isd:ied, jsd:jed, 1:nk));        cobalt%jtsldon=0.0
+      allocate(cobalt%runoff_flux_tsldon(isd:ied, jsd:jed)) ;  cobalt%runoff_flux_tsldon=0.0
+   else
+      allocate(cobalt%runoff_flux_ldon(isd:ied, jsd:jed));     cobalt%runoff_flux_ldon=0.0
+      allocate(cobalt%runoff_flux_srdon(isd:ied, jsd:jed));    cobalt%runoff_flux_srdon=0.0
+      allocate(cobalt%runoff_flux_ndet(isd:ied, jsd:jed));     cobalt%runoff_flux_ndet=0.0
+      allocate(cobalt%runoff_flux_pdet(isd:ied, jsd:jed));     cobalt%runoff_flux_pdet=0.0
+      allocate(cobalt%runoff_flux_ldop(isd:ied, jsd:jed));     cobalt%runoff_flux_ldop=0.0
+      allocate(cobalt%runoff_flux_srdop(isd:ied, jsd:jed));    cobalt%runoff_flux_srdop=0.0
+   endif !} ! } YZ
 
   end subroutine user_allocate_arrays
 
@@ -8095,15 +8294,15 @@ contains
       deallocate(cobalt%runoff_flux_lith)
       deallocate(cobalt%runoff_flux_fed)
       deallocate(cobalt%runoff_flux_no3)
-      deallocate(cobalt%runoff_flux_ldon)
+!      deallocate(cobalt%runoff_flux_ldon)
       deallocate(cobalt%runoff_flux_sldon)
-      deallocate(cobalt%runoff_flux_srdon)
-      deallocate(cobalt%runoff_flux_ndet)
-      deallocate(cobalt%runoff_flux_pdet)
+!      deallocate(cobalt%runoff_flux_srdon)
+!      deallocate(cobalt%runoff_flux_ndet)
+!      deallocate(cobalt%runoff_flux_pdet)
       deallocate(cobalt%runoff_flux_po4)
-      deallocate(cobalt%runoff_flux_ldop)
+!      deallocate(cobalt%runoff_flux_ldop)
       deallocate(cobalt%runoff_flux_sldop)
-      deallocate(cobalt%runoff_flux_srdop)
+!      deallocate(cobalt%runoff_flux_srdop)
       deallocate(cobalt%dry_fed)
       deallocate(cobalt%wet_fed)
       deallocate(cobalt%dry_lith)
@@ -8119,6 +8318,19 @@ contains
       deallocate(cobalt%deltap_dic)
       deallocate(cobalt%deltap_o2)
       deallocate(cobalt%mld_aclm)
+   ! YZ: R2OMIP, 07/07/2025 {
+   if (do_r2omip) then !{
+      deallocate(cobalt%f_tsldon)
+      deallocate(cobalt%jtsldon)
+      deallocate(cobalt%runoff_flux_tsldon)
+   else
+      deallocate(cobalt%runoff_flux_ldon)
+      deallocate(cobalt%runoff_flux_srdon)
+      deallocate(cobalt%runoff_flux_ndet)
+      deallocate(cobalt%runoff_flux_pdet)
+      deallocate(cobalt%runoff_flux_ldop)
+      deallocate(cobalt%runoff_flux_srdop)
+   endif !} ! } YZ
 
   end subroutine user_deallocate_arrays
 

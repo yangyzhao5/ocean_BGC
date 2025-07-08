@@ -1951,6 +1951,11 @@ module COBALT_reg_diag
     cobalt%id_runoff_flux_srdop = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
          init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
 
+    ! YZ: R2OMIP, 07/07/2025 {
+    vardesc_temp = vardesc("runoff_flux_tsldon","TSLDON runoff flux to the ocean",'h','1','s','mol m-2 s-1','f')
+    cobalt%id_runoff_flux_tsldon = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)  ! } YZ
+
     !
     ! 3D sinking information
     !
@@ -2309,6 +2314,11 @@ module COBALT_reg_diag
     vardesc_temp = vardesc("sfc_srdon","Surface semi-refractory Dissolved Organic Nitrogen",'h','1','s','mol kg-1','f')
     cobalt%id_sfc_srdon = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
          init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+
+    ! YZ: R2OMIP, 07/07/2025 {
+    vardesc_temp = vardesc("sfc_tsldon","Surface terrestrial semi-labile Dissolved Organic Nitrogen",'h','1','s','mol kg-1','f')
+    cobalt%id_sfc_tsldon = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)  ! } YZ
 
     vardesc_temp = vardesc("sfc_no3","Surface NO3",'h','1','s','mol kg-1','f')
     cobalt%id_sfc_no3 = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
@@ -3257,6 +3267,11 @@ module COBALT_reg_diag
     vardesc_temp = vardesc("jndet","NDET source",'h','L','s','mol kg-1 s-1','f')
     cobalt%id_jndet = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
          init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+
+    ! YZ: R2OMIP, 07/07/2025 {
+    vardesc_temp = vardesc("jtsldon","TSLDON source",'h','L','s','mol kg-1 s-1','f')
+    cobalt%id_jtsldon = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)  ! } YZ
 
     vardesc_temp = vardesc("jnh4_plus_btm","NH4 source plus btm",'h','L','s','mol kg-1 s-1','f')
     cobalt%id_jnh4_plus_btm = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&

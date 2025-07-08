@@ -25,6 +25,7 @@ module cobalt_types
   character(len=10), public ::  co2_calc = 'mocsy'           !< carbonate formalation options. Default is 'mocsy'
   logical, public :: do_14c             = .false.            !< If true, then simulate radiocarbon 
   logical, public :: do_nh3_atm_ocean_exchange = .false.     ! If true, then do NH3 air-sea exchange 
+  logical, public :: do_r2omip       = .false.               !< If true, simulate for R2OMIP ! YZ: R2OMIP, 07/07/2025
   !
   logical, public :: do_vertfill_pre = .false.
   logical, public :: debug           = .false.             !< not use   
@@ -428,6 +429,9 @@ module cobalt_types
      real  ::          &
           atm_co2_flux,     &
           c_2_n,            &
+          c_2_n_tp,         &  ! YZ: R2OMIP, 07/07/2025 {
+          c_2_n_td,         &  
+          p_2_n_td,         &  ! } YZ
           ca_2_n_arag,      &
           ca_2_n_calc,      &
           ! << Enhanced CaCO3 dissolution due to local undersaturation around sinking particles
@@ -466,6 +470,7 @@ module cobalt_types
           gamma_srdop,      &
           gamma_sldon,      &
           gamma_sldop,      &
+          gamma_tsldon,     &  ! YZ: R2OMIP, 07/07/2025
           gamma_nh4amx,     &
           kappa_sidet,      &
           irr_inhibit,      &
@@ -575,6 +580,7 @@ module cobalt_types
           f_srdop,&
           f_sldon,&
           f_sldop,&
+          f_tsldon,& ! YZ: R2OMIP, 07/07/2025
           f_sidet,&
           f_simd,&
           f_silg,&
@@ -654,6 +660,7 @@ module cobalt_types
           jsrdop,&
           jsldon,&
           jsldop,&
+          jtsldon,& ! YZ: R2OMIP, 17/07/2025
           jsidet,&
           jsimd,&
           jsilg,&
@@ -919,6 +926,7 @@ module cobalt_types
           p_srdop,&
           p_sldon,&
           p_sldop,&
+          p_tsldon,& ! YZ: R2OMIP, 07/07/2025
           p_sidet,&
           p_silg,&
           p_simd,&
@@ -943,6 +951,7 @@ module cobalt_types
           runoff_flux_ldop,&
           runoff_flux_sldop,&
           runoff_flux_srdop,&
+          runoff_flux_tsldon,& ! YZ: R2OMIP, 07/07/2025
           dry_fed, wet_fed,&
           dry_lith, wet_lith,&
           dry_no3, wet_no3,&
@@ -1032,6 +1041,7 @@ module cobalt_types
           id_jpo4          = -1,       &
           id_jsio4         = -1,       &
           id_jndet         = -1,       &
+          id_jtsldon       = -1,       &  ! YZ: R2OMIP, 07/07/2025
           id_jnh4_plus_btm = -1,       &
           id_jno3denit_wc  = -1,       &
           id_juptake_no3amx = -1,      &
@@ -1102,6 +1112,7 @@ module cobalt_types
           id_sfc_ldon      = -1,       &
           id_sfc_sldon     = -1,       &
           id_sfc_srdon     = -1,       &
+          id_sfc_tsldon    = -1,       &  ! YZ: R2OMIP, 07/07/2025
           id_sfc_no3       = -1,       &
           id_sfc_nh4       = -1,       &
           id_sfc_po4       = -1,       &
@@ -1154,6 +1165,7 @@ module cobalt_types
           id_runoff_flux_ldop = -1,    &
           id_runoff_flux_sldop = -1,   &
           id_runoff_flux_srdop = -1,   &
+          id_runoff_flux_tsldon= -1,   &  ! YZ: R2OMIP, 07/07/2025
           id_tot_layer_int_c = -1,     &
           id_tot_layer_int_fe = -1,    &
           id_tot_layer_int_n = -1,     &

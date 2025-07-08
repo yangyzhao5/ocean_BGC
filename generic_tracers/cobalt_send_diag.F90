@@ -242,6 +242,11 @@ module COBALT_send_diag
             model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc,ie_in=iec, je_in=jec)
           used = g_send_data(cobalt%id_sfc_srdon, cobalt%p_srdon(:,:,1,tau), &
             model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc,ie_in=iec, je_in=jec)
+          ! YZ: R2OMIP, 07/07/2025 {
+          if (do_r2omip) then !{
+            used = g_send_data(cobalt%id_sfc_tsldon, cobalt%p_tsldon(:,:,1,tau), &
+              model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc,ie_in=iec, je_in=jec)
+          endif !} ! } YZ
           used = g_send_data(cobalt%id_sfc_no3, cobalt%p_no3(:,:,1,tau), &
             model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc,ie_in=iec, je_in=jec)
           used = g_send_data(cobalt%id_sfc_nh4, cobalt%p_nh4(:,:,1,tau), &
@@ -497,10 +502,20 @@ module COBALT_send_diag
             cobalt%p_nmd(:,:,:,tau) + cobalt%p_nsm(:,:,:,tau) + cobalt%p_nbact(:,:,:,tau) + cobalt%p_ldon(:,:,:,tau) + &
             cobalt%p_sldon(:,:,:,tau) + cobalt%p_srdon(:,:,:,tau) + cobalt%p_ndet(:,:,:,tau) + cobalt%p_nsmz(:,:,:,tau) + &
             cobalt%p_nmdz(:,:,:,tau) + cobalt%p_nlgz(:,:,:,tau))) * rho_dzt(:,:,:)
+          ! YZ: R2OMIP, 07/07/2025 {
+          if (do_r2omip) then !{
+            cobalt%tot_layer_int_c(:,:,:) = cobalt%tot_layer_int_c(:,:,:) + cobalt%c_2_n_td * cobalt%p_tsldon(:,:,:,tau) * &
+              rho_dzt(:,:,:)
+          endif !} ! } YZ
 
           ! dissolved organic component also includes an optional background doc
           cobalt%tot_layer_int_doc(:,:,:) = (cobalt%c_2_n * (cobalt%p_ldon(:,:,:,tau) + cobalt%p_sldon(:,:,:,tau) + &
             cobalt%p_srdon(:,:,:,tau)) + cobalt%doc_background) * rho_dzt(:,:,:)
+          ! YZ: R2OMIP, 07/07/2025 {
+          if (do_r2omip) then
+            cobalt%tot_layer_int_doc(:,:,:) = cobalt%tot_layer_int_doc(:,:,:) + cobalt%c_2_n_td * cobalt%p_tsldon(:,:,:,tau) * &
+              rho_dzt(:,:,:)
+          endif !} ! } YZ
 
           cobalt%tot_layer_int_poc(:,:,:) = (cobalt%p_ndi(:,:,:,tau) + cobalt%p_nlg(:,:,:,tau) + cobalt%p_nmd(:,:,:,tau) + &
             cobalt%p_nsm(:,:,:,tau) + cobalt%p_nbact(:,:,:,tau) + cobalt%p_ndet(:,:,:,tau) + cobalt%p_nsmz(:,:,:,tau) + &
@@ -515,12 +530,21 @@ module COBALT_send_diag
             cobalt%p_nlg(:,:,:,tau) + cobalt%p_nmd(:,:,:,tau) + cobalt%p_nsm(:,:,:,tau) + cobalt%p_nbact(:,:,:,tau) + &
             cobalt%p_ldon(:,:,:,tau) + cobalt%p_sldon(:,:,:,tau) + cobalt%p_srdon(:,:,:,tau) +  cobalt%p_ndet(:,:,:,tau) + &
             cobalt%p_nsmz(:,:,:,tau) + cobalt%p_nmdz(:,:,:,tau) + cobalt%p_nlgz(:,:,:,tau)) * rho_dzt(:,:,:)
+          ! YZ: R2OMIP, 07/07/2025 {
+          if (do_r2omip) then
+            cobalt%tot_layer_int_n(:,:,:) = cobalt%tot_layer_int_n(:,:,:) + cobalt%p_tsldon(:,:,:,tau) * rho_dzt(:,:,:)
+          endif !} ! } YZ
 
           cobalt%tot_layer_int_p(:,:,:) = (cobalt%p_po4(:,:,:,tau) + cobalt%p_pdi(:,:,:,tau) + cobalt%p_plg(:,:,:,tau) + &
             cobalt%p_pmd(:,:,:,tau) + cobalt%p_psm(:,:,:,tau) + cobalt%p_ldop(:,:,:,tau) + cobalt%p_sldop(:,:,:,tau) + &
             cobalt%p_srdop(:,:,:,tau) + cobalt%p_pdet(:,:,:,tau) + bact(1)%q_p_2_n*cobalt%p_nbact(:,:,:,tau) + &
             zoo(1)%q_p_2_n*cobalt%p_nsmz(:,:,:,tau) + zoo(2)%q_p_2_n*cobalt%p_nmdz(:,:,:,tau) + &
             zoo(3)%q_p_2_n*cobalt%p_nlgz(:,:,:,tau))*rho_dzt(:,:,:)
+          ! YZ: R2OMIP, 07/07/2025 {
+          if (do_r2omip) then
+            cobalt%tot_layer_int_p(:,:,:) = cobalt%tot_layer_int_p(:,:,:) + cobalt%p_2_n_td * cobalt%p_tsldon(:,:,:,tau) * &
+              rho_dzt(:,:,:)
+          endif !} ! } YZ
 
           cobalt%tot_layer_int_si(:,:,:) = (cobalt%p_sio4(:,:,:,tau) + cobalt%p_silg(:,:,:,tau) + &
             cobalt%p_simd(:,:,:,tau) + cobalt%p_sidet(:,:,:,tau)) * rho_dzt(:,:,:)
@@ -862,6 +886,10 @@ module COBALT_send_diag
           ! Does not include background organic carbon values in accordance with CMIP request
           cobalt%dissoc(:,:,:) = cobalt%c_2_n * (cobalt%p_ldon(:,:,:,tau) + cobalt%p_sldon(:,:,:,tau) + &
             cobalt%p_srdon(:,:,:,tau) )
+          ! YZ: R2OMIP, 07/07/2025 {
+          if (do_r2omip) then !{
+            cobalt%dissoc(:,:,:) = cobalt%dissoc(:,:,:) + cobalt%c_2_n_td*cobalt%p_tsldon(:,:,:,tau)
+          endif !} ! } YZ
           used = g_send_data(cobalt%id_dissoc,  cobalt%dissoc * cobalt%Rho_0, &
             model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
           used = g_send_data(cobalt%id_phyc, (cobalt%p_nlg(:,:,:,tau) + cobalt%p_nmd(:,:,:,tau) + &
@@ -1720,24 +1748,42 @@ module COBALT_send_diag
             model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
           used = g_send_data(cobalt%id_runoff_flux_no3, cobalt%runoff_flux_no3, &
             model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
-          used = g_send_data(cobalt%id_runoff_flux_ldon, cobalt%runoff_flux_ldon, &
-            model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
+!          used = g_send_data(cobalt%id_runoff_flux_ldon, cobalt%runoff_flux_ldon, &
+!            model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
           used = g_send_data(cobalt%id_runoff_flux_sldon, cobalt%runoff_flux_sldon, &
             model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
-          used = g_send_data(cobalt%id_runoff_flux_srdon, cobalt%runoff_flux_srdon, &
-            model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
-          used = g_send_data(cobalt%id_runoff_flux_ndet, cobalt%runoff_flux_ndet, &
-            model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
-          used = g_send_data(cobalt%id_runoff_flux_pdet, cobalt%runoff_flux_pdet, &
-            model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
+!          used = g_send_data(cobalt%id_runoff_flux_srdon, cobalt%runoff_flux_srdon, &
+!            model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
+!          used = g_send_data(cobalt%id_runoff_flux_ndet, cobalt%runoff_flux_ndet, &
+!            model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
+!          used = g_send_data(cobalt%id_runoff_flux_pdet, cobalt%runoff_flux_pdet, &
+!            model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
           used = g_send_data(cobalt%id_runoff_flux_po4, cobalt%runoff_flux_po4, &
             model_time, rmask = grid_tmask(:,:,1),is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
-          used = g_send_data(cobalt%id_runoff_flux_ldop, cobalt%runoff_flux_ldop, &
-            model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
+!          used = g_send_data(cobalt%id_runoff_flux_ldop, cobalt%runoff_flux_ldop, &
+!            model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
           used = g_send_data(cobalt%id_runoff_flux_sldop, cobalt%runoff_flux_sldop, &
             model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
-          used = g_send_data(cobalt%id_runoff_flux_srdop, cobalt%runoff_flux_srdop, &
-            model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
+!          used = g_send_data(cobalt%id_runoff_flux_srdop, cobalt%runoff_flux_srdop, &
+!            model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
+          ! YZ: R2OMIP, 07/07/2025 {
+          if (do_r2omip) then !{
+            used = g_send_data(cobalt%id_runoff_flux_tsldon, cobalt%runoff_flux_tsldon, &
+              model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
+          else
+            used = g_send_data(cobalt%id_runoff_flux_ldon, cobalt%runoff_flux_ldon, &
+              model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
+            used = g_send_data(cobalt%id_runoff_flux_srdon, cobalt%runoff_flux_srdon, &
+              model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
+            used = g_send_data(cobalt%id_runoff_flux_ndet, cobalt%runoff_flux_ndet, &
+              model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
+            used = g_send_data(cobalt%id_runoff_flux_pdet, cobalt%runoff_flux_pdet, &
+              model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
+            used = g_send_data(cobalt%id_runoff_flux_ldop, cobalt%runoff_flux_ldop, &
+              model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
+            used = g_send_data(cobalt%id_runoff_flux_srdop, cobalt%runoff_flux_srdop, &
+              model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
+          endif !} ! } YZ
 
           !
           ! Save 100m integral fluxes (move calculation here for consistency with post_vertdiff?)
@@ -1891,6 +1937,11 @@ module COBALT_send_diag
             model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
           used = g_send_data(cobalt%id_jo2, cobalt%jo2, &
             model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
+          ! YZ: R2OMIP, 07/07/2025 {
+          if (do_r2omip) then !{
+            used = g_send_data(cobalt%id_jtsldon, cobalt%jtsldon, &
+              model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
+          endif !} ! } YZ
 
           !
           ! CMIP marine biogeochemical fluxes and other fields
@@ -2027,9 +2078,16 @@ module COBALT_send_diag
             model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
           ! CAS: variable includes release from sediment, but there is no organic carbon release from
           !      sediment in COBALT
-          used = g_send_data(cobalt%id_ocfriver, cobalt%c_2_n* &
-            (cobalt%runoff_flux_ldon+cobalt%runoff_flux_sldon+cobalt%runoff_flux_srdon), &
-            model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
+          ! YZ: R2OMIP, 07/07/2025 {
+          if (do_r2omip) then !{
+            used = g_send_data(cobalt%id_ocfriver, cobalt%c_2_n_tp*cobalt%runoff_flux_sldon + &
+              cobalt%c_2_n_td*cobalt%runoff_flux_tsldon, &
+              model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
+          else
+            used = g_send_data(cobalt%id_ocfriver, cobalt%c_2_n* &
+              (cobalt%runoff_flux_ldon+cobalt%runoff_flux_sldon+cobalt%runoff_flux_srdon), &
+              model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
+          endif !} ! } YZ
           ! CAS: Updated on 3/9/2021 to reflect that the total loss of organic carbon at sediments is
           !      equal to the total flux, not just the burial
           used = g_send_data(cobalt%id_froc,cobalt%c_2_n*cobalt%fndet_btm, &
@@ -2037,10 +2095,18 @@ module COBALT_send_diag
           used = g_send_data(cobalt%id_intpn2,  cobalt%wc_vert_int_nfix,  &
             model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
           ! CAS: Updated on 3/9/2021 to include nh4 deposition and riverine fluxes of organic nitrogen
-          used = g_send_data(cobalt%id_fsn,  cobalt%runoff_flux_no3 + cobalt%dry_no3 + cobalt%wet_no3 + &
-            cobalt%dry_nh4 + cobalt%wet_nh4 + cobalt%runoff_flux_ldon + cobalt%runoff_flux_sldon + &
-            cobalt%runoff_flux_srdon + cobalt%wc_vert_int_nfix, model_time, rmask = grid_tmask(:,:,1), &
-            is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
+          ! YZ: R2OMIP, 07/07/2025 {
+          if (do_r2omip) then !{
+            used = g_send_data(cobalt%id_fsn,  cobalt%runoff_flux_no3 + cobalt%dry_no3 + cobalt%wet_no3 + &
+              cobalt%dry_nh4 + cobalt%wet_nh4 + cobalt%runoff_flux_sldon + &
+              cobalt%runoff_flux_tsldon + cobalt%wc_vert_int_nfix, model_time, rmask = grid_tmask(:,:,1), &
+              is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
+          else
+            used = g_send_data(cobalt%id_fsn,  cobalt%runoff_flux_no3 + cobalt%dry_no3 + cobalt%wet_no3 + &
+              cobalt%dry_nh4 + cobalt%wet_nh4 + cobalt%runoff_flux_ldon + cobalt%runoff_flux_sldon + &
+              cobalt%runoff_flux_srdon + cobalt%wc_vert_int_nfix, model_time, rmask = grid_tmask(:,:,1), &
+              is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
+          endif !} ! } YZ
           ! JYL: Updated on 3/21/2021 to include anammox
           used = g_send_data(cobalt%id_frn,  cobalt%fno3denit_sed + cobalt%wc_vert_int_jno3denit + &
             cobalt%wc_vert_int_jnamx + cobalt%fn_burial, model_time, rmask = grid_tmask(:,:,1), &
