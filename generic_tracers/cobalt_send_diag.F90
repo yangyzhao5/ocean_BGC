@@ -86,6 +86,7 @@ module COBALT_send_diag
           call g_tracer_get_pointer(tracer_list,'ldop'   ,'field',cobalt%p_ldop   )
           call g_tracer_get_pointer(tracer_list,'nbact'  ,'field',cobalt%p_nbact  )
           call g_tracer_get_pointer(tracer_list,'ndet'   ,'field',cobalt%p_ndet   )
+          call g_tracer_get_pointer(tracer_list,'ndet_fast','field',cobalt%p_ndet_fast) ! YZ: fast-sinking, 07/07/2025
           call g_tracer_get_pointer(tracer_list,'ndi'    ,'field',cobalt%p_ndi    )
           call g_tracer_get_pointer(tracer_list,'nlg'    ,'field',cobalt%p_nlg    )
           call g_tracer_get_pointer(tracer_list,'nmd'    ,'field',cobalt%p_nmd    )
@@ -98,6 +99,7 @@ module COBALT_send_diag
           call g_tracer_get_pointer(tracer_list,'pmd'    ,'field',cobalt%p_pmd    )
           call g_tracer_get_pointer(tracer_list,'psm'    ,'field',cobalt%p_psm    )
           call g_tracer_get_pointer(tracer_list,'pdet'   ,'field',cobalt%p_pdet   )
+          call g_tracer_get_pointer(tracer_list,'pdet_fast','field',cobalt%p_pdet_fast) ! YZ: fast-sinking, 07/07/2025
           call g_tracer_get_pointer(tracer_list,'po4'    ,'field',cobalt%p_po4    )
           call g_tracer_get_pointer(tracer_list,'srdon'  ,'field',cobalt%p_srdon )
           call g_tracer_get_pointer(tracer_list,'srdop'  ,'field',cobalt%p_srdop )
@@ -411,9 +413,17 @@ module COBALT_send_diag
           used = g_send_data(cobalt%id_fndet_tp, cobalt%p_ndet(:,:,:,tau) * cobalt%Rho_0 * &
             cobalt%wsink * grid_tmask(:,:,:), model_time, rmask = grid_tmask, &
             is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
+          ! YZ: fast-sinking, 07/07/2025 {
+          used = g_send_data(cobalt%id_fndet_fast_tp, cobalt%p_ndet_fast(:,:,:,tau) * cobalt%Rho_0 * &
+            cobalt%wsink_fast * grid_tmask(:,:,:), model_time, rmask = grid_tmask, &
+            is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk) ! } YZ
           used = g_send_data(cobalt%id_fpdet_tp, cobalt%p_pdet(:,:,:,tau) * cobalt%Rho_0 * &
             cobalt%wsink * grid_tmask(:,:,:), model_time, rmask = grid_tmask, &
             is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
+          ! YZ: fast-sinking, 07/07/2025 {
+          used = g_send_data(cobalt%id_fpdet_fast_tp, cobalt%p_pdet_fast(:,:,:,tau) * cobalt%Rho_0 * &
+            cobalt%wsink_fast * grid_tmask(:,:,:), model_time, rmask = grid_tmask, &
+            is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk) ! } YZ
           used = g_send_data(cobalt%id_fsidet_tp, cobalt%p_sidet(:,:,:,tau) * cobalt%Rho_0 * &
             cobalt%wsink  * grid_tmask(:,:,:), model_time, rmask = grid_tmask, &
             is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
@@ -424,12 +434,14 @@ module COBALT_send_diag
             cobalt%p_fedi(:,:,:,tau)*phyto(DIAZO)%vmove(:,:,:))*cobalt%Rho_0*grid_tmask(:,:,:), &
             model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
           used = g_send_data(cobalt%id_fntot_tp, (cobalt%p_ndet(:,:,:,tau)*cobalt%wsink + &
+            cobalt%p_ndet_fast(:,:,:,tau)*cobalt%wsink_fast + &  ! YZ: fast-sinking, 07/07/2025
             cobalt%p_nsm(:,:,:,tau)*phyto(SMALL)%vmove(:,:,:) + &
             cobalt%p_nmd(:,:,:,tau)*phyto(MEDIUM)%vmove(:,:,:) + &
             cobalt%p_nlg(:,:,:,tau)*phyto(LARGE)%vmove(:,:,:) + &
             cobalt%p_ndi(:,:,:,tau)*phyto(DIAZO)%vmove(:,:,:))*cobalt%Rho_0*grid_tmask(:,:,:), &
             model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
           used = g_send_data(cobalt%id_fptot_tp, (cobalt%p_pdet(:,:,:,tau)*cobalt%wsink + &
+            cobalt%p_pdet_fast(:,:,:,tau)*cobalt%wsink_fast + &  ! YZ: fast-sinking, 07/07/2025
             cobalt%p_psm(:,:,:,tau)*phyto(SMALL)%vmove(:,:,:) + &
             cobalt%p_pmd(:,:,:,tau)*phyto(MEDIUM)%vmove(:,:,:) + &
             cobalt%p_plg(:,:,:,tau)*phyto(LARGE)%vmove(:,:,:) + &
@@ -463,9 +475,17 @@ module COBALT_send_diag
           flux_i(:,:,2:nk+1) = cobalt%p_ndet(:,:,1:nk,tau)*cobalt%Rho_0*cobalt%wsink
           used = g_send_data(cobalt%id_fndet_i, flux_i, model_time, rmask = grid_tmask, &
             is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk+1)
+          ! YZ: fast-sinking, 07/07/2025 {
+          flux_i(:,:,2:nk+1) = cobalt%p_ndet_fast(:,:,1:nk,tau)*cobalt%Rho_0*cobalt%wsink_fast
+          used = g_send_data(cobalt%id_fndet_fast_i, flux_i, model_time, rmask = grid_tmask, &
+            is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk+1) ! } YZ
           flux_i(:,:,2:nk+1) = cobalt%p_pdet(:,:,1:nk,tau)*cobalt%Rho_0*cobalt%wsink
           used = g_send_data(cobalt%id_fpdet_i, flux_i, model_time, rmask = grid_tmask, &
             is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk+1)
+          ! YZ: fast-sinking, 07/07/2025 {
+          flux_i(:,:,2:nk+1) = cobalt%p_pdet_fast(:,:,1:nk,tau)*cobalt%Rho_0*cobalt%wsink_fast
+          used = g_send_data(cobalt%id_fpdet_fast_i, flux_i, model_time, rmask = grid_tmask, &
+            is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk+1) ! } YZ
           flux_i(:,:,2:nk+1) = cobalt%p_sidet(:,:,1:nk,tau)*cobalt%Rho_0*cobalt%wsink
           used = g_send_data(cobalt%id_fsidet_i, flux_i, model_time, rmask = grid_tmask, &
             is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk+1)
@@ -477,12 +497,14 @@ module COBALT_send_diag
           used = g_send_data(cobalt%id_ffetot_i, flux_i, model_time, rmask = grid_tmask, &
             is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk+1)
           flux_i(:,:,2:nk+1) = (cobalt%p_ndet(:,:,:,tau)*cobalt%wsink + &
+            cobalt%p_ndet_fast(:,:,:,tau)*cobalt%wsink_fast + &  ! YZ: fast-sinking, 07/07/2025
             cobalt%p_nsm(:,:,:,tau)*phyto(SMALL)%vmove(:,:,:) + cobalt%p_nmd(:,:,:,tau)*phyto(MEDIUM)%vmove(:,:,:) + &
             cobalt%p_nlg(:,:,:,tau)*phyto(LARGE)%vmove(:,:,:) + cobalt%p_ndi(:,:,:,tau)*phyto(DIAZO)%vmove(:,:,:)) * &
             cobalt%Rho_0
           used = g_send_data(cobalt%id_fntot_i, flux_i, model_time, rmask = grid_tmask, &
             is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk+1)
           flux_i(:,:,2:nk+1) = (cobalt%p_pdet(:,:,:,tau)*cobalt%wsink + &
+            cobalt%p_pdet_fast(:,:,:,tau)*cobalt%wsink_fast + &  ! YZ: fast-sinking, 07/07/2025
             cobalt%p_psm(:,:,:,tau)*phyto(SMALL)%vmove(:,:,:) + cobalt%p_pmd(:,:,:,tau)*phyto(MEDIUM)%vmove(:,:,:) + &
             cobalt%p_plg(:,:,:,tau)*phyto(LARGE)%vmove(:,:,:) + cobalt%p_pdi(:,:,:,tau)*phyto(DIAZO)%vmove(:,:,:)) * &
             cobalt%Rho_0
@@ -500,8 +522,8 @@ module COBALT_send_diag
           cobalt%tot_layer_int_c(:,:,:) = (cobalt%p_dic(:,:,:,tau) + cobalt%doc_background + cobalt%p_cadet_arag(:,:,:,tau) +&
             cobalt%p_cadet_calc(:,:,:,tau) + cobalt%c_2_n * (cobalt%p_ndi(:,:,:,tau) + cobalt%p_nlg(:,:,:,tau) + &
             cobalt%p_nmd(:,:,:,tau) + cobalt%p_nsm(:,:,:,tau) + cobalt%p_nbact(:,:,:,tau) + cobalt%p_ldon(:,:,:,tau) + &
-            cobalt%p_sldon(:,:,:,tau) + cobalt%p_srdon(:,:,:,tau) + cobalt%p_ndet(:,:,:,tau) + cobalt%p_nsmz(:,:,:,tau) + &
-            cobalt%p_nmdz(:,:,:,tau) + cobalt%p_nlgz(:,:,:,tau))) * rho_dzt(:,:,:)
+            cobalt%p_sldon(:,:,:,tau) + cobalt%p_srdon(:,:,:,tau) + cobalt%p_ndet(:,:,:,tau) + cobalt%p_ndet_fast(:,:,:,tau) + & ! YZ
+            cobalt%p_nsmz(:,:,:,tau) + cobalt%p_nmdz(:,:,:,tau) + cobalt%p_nlgz(:,:,:,tau))) * rho_dzt(:,:,:)
           ! YZ: R2OMIP, 07/07/2025 {
           if (do_r2omip) then !{
             cobalt%tot_layer_int_c(:,:,:) = cobalt%tot_layer_int_c(:,:,:) + cobalt%c_2_n_td * cobalt%p_tsldon(:,:,:,tau) * &
@@ -518,8 +540,8 @@ module COBALT_send_diag
           endif !} ! } YZ
 
           cobalt%tot_layer_int_poc(:,:,:) = (cobalt%p_ndi(:,:,:,tau) + cobalt%p_nlg(:,:,:,tau) + cobalt%p_nmd(:,:,:,tau) + &
-            cobalt%p_nsm(:,:,:,tau) + cobalt%p_nbact(:,:,:,tau) + cobalt%p_ndet(:,:,:,tau) + cobalt%p_nsmz(:,:,:,tau) + &
-            cobalt%p_nmdz(:,:,:,tau) + cobalt%p_nlgz(:,:,:,tau))*cobalt%c_2_n*rho_dzt(:,:,:)
+            cobalt%p_nsm(:,:,:,tau) + cobalt%p_nbact(:,:,:,tau) + cobalt%p_ndet(:,:,:,tau) + cobalt%p_ndet_fast(:,:,:,tau) + & ! YZ
+            cobalt%p_nsmz(:,:,:,tau) + cobalt%p_nmdz(:,:,:,tau) + cobalt%p_nlgz(:,:,:,tau))*cobalt%c_2_n*rho_dzt(:,:,:)
 
           cobalt%tot_layer_int_dic(:,:,:) = cobalt%p_dic(:,:,:,tau)*rho_dzt(:,:,:)
 
@@ -529,7 +551,7 @@ module COBALT_send_diag
           cobalt%tot_layer_int_n(:,:,:) = (cobalt%p_no3(:,:,:,tau) + cobalt%p_nh4(:,:,:,tau) + cobalt%p_ndi(:,:,:,tau) + &
             cobalt%p_nlg(:,:,:,tau) + cobalt%p_nmd(:,:,:,tau) + cobalt%p_nsm(:,:,:,tau) + cobalt%p_nbact(:,:,:,tau) + &
             cobalt%p_ldon(:,:,:,tau) + cobalt%p_sldon(:,:,:,tau) + cobalt%p_srdon(:,:,:,tau) +  cobalt%p_ndet(:,:,:,tau) + &
-            cobalt%p_nsmz(:,:,:,tau) + cobalt%p_nmdz(:,:,:,tau) + cobalt%p_nlgz(:,:,:,tau)) * rho_dzt(:,:,:)
+            cobalt%p_ndet_fast(:,:,:,tau) + cobalt%p_nsmz(:,:,:,tau) + cobalt%p_nmdz(:,:,:,tau) + cobalt%p_nlgz(:,:,:,tau)) * rho_dzt(:,:,:) ! YZ
           ! YZ: R2OMIP, 07/07/2025 {
           if (do_r2omip) then
             cobalt%tot_layer_int_n(:,:,:) = cobalt%tot_layer_int_n(:,:,:) + cobalt%p_tsldon(:,:,:,tau) * rho_dzt(:,:,:)
@@ -537,7 +559,8 @@ module COBALT_send_diag
 
           cobalt%tot_layer_int_p(:,:,:) = (cobalt%p_po4(:,:,:,tau) + cobalt%p_pdi(:,:,:,tau) + cobalt%p_plg(:,:,:,tau) + &
             cobalt%p_pmd(:,:,:,tau) + cobalt%p_psm(:,:,:,tau) + cobalt%p_ldop(:,:,:,tau) + cobalt%p_sldop(:,:,:,tau) + &
-            cobalt%p_srdop(:,:,:,tau) + cobalt%p_pdet(:,:,:,tau) + bact(1)%q_p_2_n*cobalt%p_nbact(:,:,:,tau) + &
+            cobalt%p_srdop(:,:,:,tau) + cobalt%p_pdet(:,:,:,tau) + cobalt%p_pdet_fast(:,:,:,tau) + & ! YZ
+            bact(1)%q_p_2_n*cobalt%p_nbact(:,:,:,tau) + &
             zoo(1)%q_p_2_n*cobalt%p_nsmz(:,:,:,tau) + zoo(2)%q_p_2_n*cobalt%p_nmdz(:,:,:,tau) + &
             zoo(3)%q_p_2_n*cobalt%p_nlgz(:,:,:,tau))*rho_dzt(:,:,:)
           ! YZ: R2OMIP, 07/07/2025 {
@@ -649,25 +672,29 @@ module COBALT_send_diag
             zoo(3)%f_n_100(i,j) = cobalt%p_nlgz(i,j,1,tau) * rho_dzt(i,j,1)
             bact(1)%f_n_100(i,j) = cobalt%p_nbact(i,j,1,tau) * rho_dzt(i,j,1)
             cobalt%f_ndet_100(i,j) = cobalt%p_ndet(i,j,1,tau) * rho_dzt(i,j,1)
+            cobalt%f_ndet_fast_100(i,j) = cobalt%p_ndet_fast(i,j,1,tau) * rho_dzt(i,j,1) ! YZ: fast-sinking, 07/07/2025
             cobalt%f_don_100(i,j) = (cobalt%p_ldon(i,j,1,tau)+cobalt%p_sldon(i,j,1,tau)+cobalt%p_srdon(i,j,1,tau))* &
               rho_dzt(i,j,1)
             cobalt%f_silg_100(i,j) = cobalt%p_silg(i,j,1,tau)*rho_dzt(i,j,1)
             cobalt%f_simd_100(i,j) = cobalt%p_simd(i,j,1,tau)*rho_dzt(i,j,1)
-            ! sinking fluxes (should we just handle these with by remapping the appropriate 3D variable onto 100m?)
-            ! need to add fast sinking detritus
+            ! sinking fluxes (should handle these with by remapping the appropriate 3D variable onto 100m)
             cobalt%fndet_100(i,j) = cobalt%p_ndet(i,j,1,tau) * cobalt%Rho_0 * cobalt%wsink
+            cobalt%fndet_fast_100(i,j) = cobalt%p_ndet_fast(i,j,1,tau) * cobalt%Rho_0 * cobalt%wsink_fast ! YZ: fast-sinking, 07/07/2025
             cobalt%fpdet_100(i,j) = cobalt%p_pdet(i,j,1,tau) * cobalt%Rho_0 * cobalt%wsink
+            cobalt%fpdet_fast_100(i,j) = cobalt%p_pdet_fast(i,j,1,tau) * cobalt%Rho_0 * cobalt%wsink_fast ! YZ: fast-sinking, 07/07/2025
             cobalt%ffedet_100(i,j) = cobalt%p_fedet(i,j,1,tau) * cobalt%Rho_0 * cobalt%wsink
             cobalt%flithdet_100(i,j) = cobalt%p_lithdet(i,j,1,tau) * cobalt%Rho_0 * cobalt%wsink
             cobalt%fsidet_100(i,j) = cobalt%p_sidet(i,j,1,tau) * cobalt%Rho_0 * cobalt%wsink
             cobalt%fcadet_arag_100(i,j) = cobalt%p_cadet_arag(i,j,1,tau) * cobalt%Rho_0 * cobalt%wsink
             cobalt%fcadet_calc_100(i,j) = cobalt%p_cadet_calc(i,j,1,tau) * cobalt%Rho_0 * cobalt%wsink
             cobalt%fntot_100(i,j) = (cobalt%p_ndet(i,j,1,tau)*cobalt%wsink + &
+              cobalt%p_ndet_fast(i,j,1,tau)*cobalt%wsink_fast + & ! YZ: fast-sinking, 07/07/2025
               cobalt%p_nsm(i,j,1,tau)*phyto(SMALL)%vmove(i,j,1) + &
               cobalt%p_nmd(i,j,1,tau)*phyto(MEDIUM)%vmove(i,j,1) + &
               cobalt%p_nlg(i,j,1,tau)*phyto(LARGE)%vmove(i,j,1) + &
               cobalt%p_ndi(i,j,1,tau)*phyto(DIAZO)%vmove(i,j,1))*cobalt%Rho_0
             cobalt%fptot_100(i,j) = (cobalt%p_pdet(i,j,1,tau)*cobalt%wsink + &
+              cobalt%p_pdet_fast(i,j,1,tau)*cobalt%wsink_fast + & ! YZ: fast-sinking, 07/07/2025
               cobalt%p_psm(i,j,1,tau)*phyto(SMALL)%vmove(i,j,1) + &
               cobalt%p_pmd(i,j,1,tau)*phyto(MEDIUM)%vmove(i,j,1) + &
               cobalt%p_plg(i,j,1,tau)*phyto(LARGE)%vmove(i,j,1) + &
@@ -704,24 +731,29 @@ module COBALT_send_diag
                 zoo(3)%f_n_100(i,j) = zoo(3)%f_n_100(i,j) + cobalt%p_nlgz(i,j,k,tau) * rho_dzt(i,j,k)
                 bact(1)%f_n_100(i,j) = bact(1)%f_n_100(i,j) + cobalt%p_nbact(i,j,k,tau) * rho_dzt(i,j,k)
                 cobalt%f_ndet_100(i,j) = cobalt%f_ndet_100(i,j) + cobalt%p_ndet(i,j,k,tau)*rho_dzt(i,j,k)
+                cobalt%f_ndet_fast_100(i,j) = cobalt%f_ndet_fast_100(i,j) + cobalt%p_ndet_fast(i,j,k,tau)*rho_dzt(i,j,k) ! YZ: fast-sinking, 07/07/2025
                 cobalt%f_don_100(i,j) = cobalt%f_don_100(i,j) + (cobalt%p_ldon(i,j,k,tau)+cobalt%p_sldon(i,j,k,tau) + &
                   cobalt%p_srdon(i,j,k,tau))*rho_dzt(i,j,k)
                 cobalt%f_silg_100(i,j) = cobalt%f_silg_100(i,j) + cobalt%p_silg(i,j,k,tau)*rho_dzt(i,j,k)
                 cobalt%f_simd_100(i,j) = cobalt%f_simd_100(i,j) + cobalt%p_simd(i,j,k,tau)*rho_dzt(i,j,k)  ! Missed
                 ! sinking fluxes (should we just handle these with by remapping the appropriate 3D variable onto 100m?)
                 cobalt%fndet_100(i,j) = cobalt%p_ndet(i,j,k,tau) * cobalt%Rho_0 * cobalt%wsink
+                cobalt%fndet_fast_100(i,j) = cobalt%p_ndet_fast(i,j,k,tau) * cobalt%Rho_0 * cobalt%wsink_fast ! YZ: fast-sinking, 07/07/2025
                 cobalt%fpdet_100(i,j) = cobalt%p_pdet(i,j,k,tau) * cobalt%Rho_0 * cobalt%wsink
+                cobalt%fpdet_fast_100(i,j) = cobalt%p_pdet_fast(i,j,k,tau) * cobalt%Rho_0 * cobalt%wsink_fast ! YZ: fast-sinking, 07/07/2025
                 cobalt%ffedet_100(i,j) = cobalt%p_fedet(i,j,k,tau) * cobalt%Rho_0 * cobalt%wsink
                 cobalt%flithdet_100(i,j) = cobalt%p_lithdet(i,j,k,tau) * cobalt%Rho_0 * cobalt%wsink
                 cobalt%fsidet_100(i,j) = cobalt%p_sidet(i,j,k,tau) * cobalt%Rho_0 * cobalt%wsink
                 cobalt%fcadet_arag_100(i,j) = cobalt%p_cadet_arag(i,j,k,tau) * cobalt%Rho_0 * cobalt%wsink
                 cobalt%fcadet_calc_100(i,j) = cobalt%p_cadet_calc(i,j,k,tau) * cobalt%Rho_0 * cobalt%wsink
                 cobalt%fntot_100(i,j) = (cobalt%p_ndet(i,j,k,tau)*cobalt%wsink + &
+                  cobalt%p_ndet_fast(i,j,k,tau)*cobalt%wsink_fast + & ! YZ: fast-sinking, 07/07/2025
                   cobalt%p_nsm(i,j,k,tau)*phyto(SMALL)%vmove(i,j,k) + &
                   cobalt%p_nmd(i,j,k,tau)*phyto(MEDIUM)%vmove(i,j,k) + &
                   cobalt%p_nlg(i,j,k,tau)*phyto(LARGE)%vmove(i,j,k) + &
                   cobalt%p_ndi(i,j,k,tau)*phyto(DIAZO)%vmove(i,j,k))*cobalt%Rho_0
                 cobalt%fptot_100(i,j) = (cobalt%p_pdet(i,j,k,tau)*cobalt%wsink + &
+                  cobalt%p_pdet_fast(i,j,k,tau)*cobalt%wsink_fast + & ! YZ: fast-sinking, 07/07/2025
                   cobalt%p_psm(i,j,k,tau)*phyto(SMALL)%vmove(i,j,k) + &
                   cobalt%p_pmd(i,j,k,tau)*phyto(MEDIUM)%vmove(i,j,k) + &
                   cobalt%p_plg(i,j,k,tau)*phyto(LARGE)%vmove(i,j,k) + &
@@ -755,25 +787,29 @@ module COBALT_send_diag
               zoo(3)%f_n_100(i,j) = zoo(3)%f_n_100(i,j) + cobalt%p_nlgz(i,j,k_100,tau) * drho_dzt
               bact(1)%f_n_100(i,j) = bact(1)%f_n_100(i,j) + cobalt%p_nbact(i,j,k_100,tau) * drho_dzt
               cobalt%f_ndet_100(i,j) = cobalt%f_ndet_100(i,j) + cobalt%p_ndet(i,j,k_100,tau)*drho_dzt
+              cobalt%f_ndet_fast_100(i,j) = cobalt%f_ndet_fast_100(i,j) + cobalt%p_ndet_fast(i,j,k_100,tau)*drho_dzt ! YZ: fast-sinking, 07/07/2025
               cobalt%f_don_100(i,j) = cobalt%f_don_100(i,j) + (cobalt%p_ldon(i,j,k_100,tau)+cobalt%p_sldon(i,j,k_100,tau) + &
                 cobalt%p_srdon(i,j,k_100,tau))*drho_dzt
               cobalt%f_silg_100(i,j) = cobalt%f_silg_100(i,j) + cobalt%p_silg(i,j,k_100,tau)*drho_dzt
               cobalt%f_simd_100(i,j) = cobalt%f_simd_100(i,j) + cobalt%p_simd(i,j,k_100,tau)*drho_dzt
               ! sinking fluxes (should we just handle these with by remapping the appropriate 3D variable onto 100m?)
-              ! need to add fast sinking detritus
               cobalt%fndet_100(i,j) = cobalt%p_ndet(i,j,k_100,tau) * cobalt%Rho_0 * cobalt%wsink
+              cobalt%fndet_fast_100(i,j) = cobalt%p_ndet_fast(i,j,k_100,tau) * cobalt%Rho_0 * cobalt%wsink_fast ! YZ: fast-sinking, 07/07/2025
               cobalt%fpdet_100(i,j) = cobalt%p_pdet(i,j,k_100,tau) * cobalt%Rho_0 * cobalt%wsink
+              cobalt%fpdet_fast_100(i,j) = cobalt%p_pdet_fast(i,j,k_100,tau) * cobalt%Rho_0 * cobalt%wsink_fast ! YZ: fast-sinking, 07/07/2025
               cobalt%ffedet_100(i,j) = cobalt%p_fedet(i,j,k_100,tau) * cobalt%Rho_0 * cobalt%wsink
               cobalt%flithdet_100(i,j) = cobalt%p_lithdet(i,j,k_100,tau) * cobalt%Rho_0 * cobalt%wsink
               cobalt%fsidet_100(i,j) = cobalt%p_sidet(i,j,k_100,tau) * cobalt%Rho_0 * cobalt%wsink
               cobalt%fcadet_arag_100(i,j) = cobalt%p_cadet_arag(i,j,k_100,tau) * cobalt%Rho_0 * cobalt%wsink
               cobalt%fcadet_calc_100(i,j) = cobalt%p_cadet_calc(i,j,k_100,tau) * cobalt%Rho_0 * cobalt%wsink
               cobalt%fntot_100(i,j) = (cobalt%p_ndet(i,j,k_100,tau)*cobalt%wsink + &
+                cobalt%p_ndet_fast(i,j,k_100,tau)*cobalt%wsink_fast + & ! YZ: fast-sinking, 07/07/2025
                 cobalt%p_nsm(i,j,k_100,tau)*phyto(SMALL)%vmove(i,j,k_100) + &
                 cobalt%p_nmd(i,j,k_100,tau)*phyto(MEDIUM)%vmove(i,j,k_100) + &
                 cobalt%p_nlg(i,j,k_100,tau)*phyto(LARGE)%vmove(i,j,k_100) + &
                 cobalt%p_ndi(i,j,k_100,tau)*phyto(DIAZO)%vmove(i,j,k_100))*cobalt%Rho_0
               cobalt%fptot_100(i,j) = (cobalt%p_pdet(i,j,k_100,tau)*cobalt%wsink + &
+                cobalt%p_pdet_fast(i,j,k_100,tau)*cobalt%wsink_fast + & ! YZ: fast-sinking, 07/07/2025
                 cobalt%p_psm(i,j,k_100,tau)*phyto(SMALL)%vmove(i,j,k_100) + &
                 cobalt%p_pmd(i,j,k_100,tau)*phyto(MEDIUM)%vmove(i,j,k_100) + &
                 cobalt%p_plg(i,j,k_100,tau)*phyto(LARGE)%vmove(i,j,k_100) + &
@@ -806,6 +842,9 @@ module COBALT_send_diag
             model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
           used = g_send_data(cobalt%id_f_ndet_100, cobalt%f_ndet_100, &
             model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
+          ! YZ: fast-sinking, 07/07/2025 {
+          used = g_send_data(cobalt%id_f_ndet_fast_100, cobalt%f_ndet_fast_100, &
+            model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc, ie_in=iec, je_in=jec) ! } YZ
           used = g_send_data(cobalt%id_f_don_100, cobalt%f_don_100, &
             model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
           used = g_send_data(cobalt%id_f_silg_100, cobalt%f_silg_100, &
@@ -831,8 +870,14 @@ module COBALT_send_diag
           !
           used = g_send_data(cobalt%id_fndet_100, cobalt%fndet_100, &
             model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
+          ! YZ: fast-sinking, 07/07/2025 {
+          used = g_send_data(cobalt%id_fndet_fast_100, cobalt%fndet_fast_100, &
+            model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc, ie_in=iec, je_in=jec) ! } YZ
           used = g_send_data(cobalt%id_fpdet_100, cobalt%fpdet_100, &
             model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
+          ! YZ: fast-sinking, 07/07/2025 {
+          used = g_send_data(cobalt%id_fpdet_fast_100, cobalt%fpdet_fast_100, &
+            model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc, ie_in=iec, je_in=jec) ! } YZ
           used = g_send_data(cobalt%id_fsidet_100, cobalt%fsidet_100, &
             model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
           used = g_send_data(cobalt%id_flithdet_100, cobalt%flithdet_100, &
@@ -901,7 +946,8 @@ module COBALT_send_diag
           used = g_send_data(cobalt%id_bacc,  cobalt%p_nbact(:,:,:,tau) * cobalt%c_2_n * cobalt%Rho_0, &
             model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
           ! need to add fast sinking detritus once implemented
-          used = g_send_data(cobalt%id_detoc,  cobalt%p_ndet(:,:,:,tau) * cobalt%c_2_n * cobalt%Rho_0, &
+          used = g_send_data(cobalt%id_detoc,  (cobalt%p_ndet(:,:,:,tau) + cobalt%p_ndet_fast(:,:,:,tau)) * & ! YZ: fast-sinking, 07/07/2025
+            cobalt%c_2_n * cobalt%Rho_0, &
             model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
           ! Includes on calcite and aragonite detritus, not comparable to total calcite/aragonite st surface
           used = g_send_data(cobalt%id_calc,  cobalt%p_cadet_calc(:,:,:,tau) * cobalt%Rho_0, &
@@ -963,18 +1009,20 @@ module COBALT_send_diag
             phyto(MEDIUM)%theta * cobalt%nmd_misc) * cobalt%c_2_n*cobalt%Rho_0*12.0e-3, &
             model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
           ! Aggregate Particulate C, N, P, Fe and Si pools
-          used = g_send_data(cobalt%id_poc, (cobalt%p_ndi(:,:,:,tau)+cobalt%p_nlg(:,:,:,tau)+ &
-            cobalt%p_nmd(:,:,:,tau)+cobalt%p_nsm(:,:,:,tau)+cobalt%p_nbact(:,:,:,tau)+cobalt%p_ndet(:,:,:,tau) + &
-            cobalt%p_nsmz(:,:,:,tau)+cobalt%p_nmdz(:,:,:,tau)+cobalt%p_nlgz(:,:,:,tau))*cobalt%Rho_0*cobalt%c_2_n, &
+          used = g_send_data(cobalt%id_poc, (cobalt%p_ndi(:,:,:,tau) + cobalt%p_nlg(:,:,:,tau) + &
+            cobalt%p_nmd(:,:,:,tau) + cobalt%p_nsm(:,:,:,tau) + cobalt%p_nbact(:,:,:,tau) + &
+            cobalt%p_ndet(:,:,:,tau) + cobalt%p_ndet_fast(:,:,:,tau) + cobalt%p_nsmz(:,:,:,tau) + & ! YZ: fast-sinking, 07/07/2025
+            cobalt%p_nmdz(:,:,:,tau) + cobalt%p_nlgz(:,:,:,tau))*cobalt%Rho_0*cobalt%c_2_n, &
             model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
-          used = g_send_data(cobalt%id_pon, (cobalt%p_ndi(:,:,:,tau)+cobalt%p_nlg(:,:,:,tau)+ &
-            cobalt%p_nmd(:,:,:,tau)+cobalt%p_nsm(:,:,:,tau)+cobalt%p_nbact(:,:,:,tau)+cobalt%p_ndet(:,:,:,tau)+ &
-            cobalt%p_nsmz(:,:,:,tau)+cobalt%p_nmdz(:,:,:,tau)+cobalt%p_nlgz(:,:,:,tau))*cobalt%Rho_0, &
+          used = g_send_data(cobalt%id_pon, (cobalt%p_ndi(:,:,:,tau) + cobalt%p_nlg(:,:,:,tau) + &
+            cobalt%p_nmd(:,:,:,tau) + cobalt%p_nsm(:,:,:,tau) + cobalt%p_nbact(:,:,:,tau) + &
+            cobalt%p_ndet(:,:,:,tau) + cobalt%p_ndet_fast(:,:,:,tau) + cobalt%p_nsmz(:,:,:,tau) + & ! YZ: fast-sinking, 07/07/2025
+            cobalt%p_nmdz(:,:,:,tau) + cobalt%p_nlgz(:,:,:,tau))*cobalt%Rho_0, &
             model_time, rmask = grid_tmask,is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
-          used = g_send_data(cobalt%id_pop, (cobalt%p_pdi(:,:,:,tau)+cobalt%p_plg(:,:,:,tau)+ &
-            cobalt%p_pmd(:,:,:,tau)+cobalt%p_psm(:,:,:,tau)+bact(1)%q_p_2_n*cobalt%p_nbact(:,:,:,tau)+ &
-            cobalt%p_pdet(:,:,:,tau)+zoo(1)%q_p_2_n*cobalt%p_nsmz(:,:,:,tau)+zoo(2)%q_p_2_n*cobalt%p_nmdz(:,:,:,tau)+ &
-            zoo(3)%q_p_2_n*cobalt%p_nlgz(:,:,:,tau))*cobalt%Rho_0,  &
+          used = g_send_data(cobalt%id_pop, (cobalt%p_pdi(:,:,:,tau) + cobalt%p_plg(:,:,:,tau) + &
+            cobalt%p_pmd(:,:,:,tau) + cobalt%p_psm(:,:,:,tau) + bact(1)%q_p_2_n*cobalt%p_nbact(:,:,:,tau) + &
+            cobalt%p_pdet(:,:,:,tau) + cobalt%p_pdet_fast(:,:,:,tau) + zoo(1)%q_p_2_n * cobalt%p_nsmz(:,:,:,tau) + & ! YZ: fast-sinking, 07/07/2025
+            zoo(2)%q_p_2_n*cobalt%p_nmdz(:,:,:,tau) + zoo(3)%q_p_2_n*cobalt%p_nlgz(:,:,:,tau)) * cobalt%Rho_0,  &
             model_time, rmask = grid_tmask,is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
           used = g_send_data(cobalt%id_bfe, (cobalt%p_fedi(:,:,:,tau) + cobalt%p_felg(:,:,:,tau) + &
             cobalt%p_femd(:,:,:,tau) + cobalt%p_fesm(:,:,:,tau) + cobalt%p_fedet(:,:,:,tau))*cobalt%Rho_0, &
@@ -1020,16 +1068,19 @@ module COBALT_send_diag
           ! CMIP 3D Sinking Variables (tp = at tracer points, i = at interfaces)
           !
           used = g_send_data(cobalt%id_expc_tp, (cobalt%p_ndet(:,:,:,tau)*cobalt%wsink + &
+            cobalt%p_ndet_fast(:,:,:,tau)*cobalt%wsink_fast + & ! YZ: fast-sinking, 07/07/2025
             cobalt%p_nsm(:,:,:,tau)*phyto(SMALL)%vmove(:,:,:) + cobalt%p_nmd(:,:,:,tau)*phyto(MEDIUM)%vmove(:,:,:) + &
             cobalt%p_nlg(:,:,:,tau)*phyto(LARGE)%vmove(:,:,:) + cobalt%p_ndi(:,:,:,tau)*phyto(DIAZO)%vmove(:,:,:)) * &
             cobalt%c_2_n*cobalt%Rho_0*grid_tmask(:,:,:), model_time, rmask = grid_tmask, &
             is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
           used = g_send_data(cobalt%id_expn_tp, (cobalt%p_ndet(:,:,:,tau)*cobalt%wsink + &
+            cobalt%p_ndet_fast(:,:,:,tau)*cobalt%wsink_fast + & ! YZ: fast-sinking, 07/07/2025
             cobalt%p_nsm(:,:,:,tau)*phyto(SMALL)%vmove(:,:,:) + cobalt%p_nmd(:,:,:,tau)*phyto(MEDIUM)%vmove(:,:,:) + &
             cobalt%p_nlg(:,:,:,tau)*phyto(LARGE)%vmove(:,:,:) + cobalt%p_ndi(:,:,:,tau)*phyto(DIAZO)%vmove(:,:,:)) * &
             cobalt%Rho_0*grid_tmask(:,:,:), model_time, rmask = grid_tmask, &
             is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
           used = g_send_data(cobalt%id_expp_tp, (cobalt%p_pdet(:,:,:,tau)*cobalt%wsink + &
+            cobalt%p_pdet_fast(:,:,:,tau)*cobalt%wsink_fast + & ! YZ: fast-sinking, 07/07/2025
             cobalt%p_psm(:,:,:,tau)*phyto(SMALL)%vmove(:,:,:) + cobalt%p_pmd(:,:,:,tau)*phyto(MEDIUM)%vmove(:,:,:) + & 
             cobalt%p_plg(:,:,:,tau)*phyto(LARGE)%vmove(:,:,:) + cobalt%p_pdi(:,:,:,tau)*phyto(DIAZO)%vmove(:,:,:)) * & 
             cobalt%Rho_0*grid_tmask(:,:,:), model_time, rmask = grid_tmask, & 
@@ -1055,18 +1106,21 @@ module COBALT_send_diag
           ! Sinking is solved with an implicit upwind scheme.  Thus, flux at interfaces 2:nk+1 is determined by the
           ! concentration and sinking velocity from the grid above.
           flux_i(:,:,2:nk+1) = (cobalt%p_ndet(:,:,:,tau)*cobalt%wsink + &
+            cobalt%p_ndet_fast(:,:,:,tau)*cobalt%wsink_fast + & ! YZ: fast-sinking, 07/07/2025
             cobalt%p_nsm(:,:,:,tau)*phyto(SMALL)%vmove(:,:,:) + cobalt%p_nmd(:,:,:,tau)*phyto(MEDIUM)%vmove(:,:,:) + &
             cobalt%p_nlg(:,:,:,tau)*phyto(LARGE)%vmove(:,:,:) + cobalt%p_ndi(:,:,:,tau)*phyto(DIAZO)%vmove(:,:,:)) * &
             cobalt%c_2_n*cobalt%Rho_0*grid_tmask(:,:,:)
           used = g_send_data(cobalt%id_expc_i, flux_i, model_time, rmask = grid_tmask, &
             is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk+1)
           flux_i(:,:,2:nk+1) = (cobalt%p_ndet(:,:,:,tau)*cobalt%wsink + &
+            cobalt%p_ndet_fast(:,:,:,tau)*cobalt%wsink_fast + & ! YZ: fast-sinking, 07/07/2025
             cobalt%p_nsm(:,:,:,tau)*phyto(SMALL)%vmove(:,:,:) + cobalt%p_nmd(:,:,:,tau)*phyto(MEDIUM)%vmove(:,:,:) + &
             cobalt%p_nlg(:,:,:,tau)*phyto(LARGE)%vmove(:,:,:) + cobalt%p_ndi(:,:,:,tau)*phyto(DIAZO)%vmove(:,:,:)) * &
             cobalt%Rho_0*grid_tmask(:,:,:)
           used = g_send_data(cobalt%id_expn_i, flux_i, model_time, rmask = grid_tmask, &
             is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk+1)
           flux_i(:,:,2:nk+1) = (cobalt%p_pdet(:,:,:,tau)*cobalt%wsink + &
+            cobalt%p_pdet_fast(:,:,:,tau)*cobalt%wsink_fast + & ! YZ: fast-sinking, 07/07/2025
             cobalt%p_psm(:,:,:,tau)*phyto(SMALL)%vmove(:,:,:) + cobalt%p_pmd(:,:,:,tau)*phyto(MEDIUM)%vmove(:,:,:) + &
             cobalt%p_plg(:,:,:,tau)*phyto(LARGE)%vmove(:,:,:) + cobalt%p_pdi(:,:,:,tau)*phyto(DIAZO)%vmove(:,:,:)) * &
             cobalt%Rho_0*grid_tmask(:,:,:)
@@ -1105,7 +1159,8 @@ module COBALT_send_diag
             model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
           used = g_send_data(cobalt%id_baccos, cobalt%p_nbact(:,:,1,tau) * cobalt%c_2_n * cobalt%Rho_0,  &
             model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
-          used = g_send_data(cobalt%id_detocos, cobalt%p_ndet(:,:,1,tau) * cobalt%c_2_n * cobalt%Rho_0,  &
+          used = g_send_data(cobalt%id_detocos, (cobalt%p_ndet(:,:,1,tau) + cobalt%p_ndet_fast(:,:,1,tau)) * & ! YZ: fast-sinking, 07/07/2025
+            cobalt%c_2_n * cobalt%Rho_0,  &
             model_time, rmask = grid_tmask(:,:,1),is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
           used = g_send_data(cobalt%id_calcos, cobalt%p_cadet_calc(:,:,1,tau) * cobalt%Rho_0, &
             model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
@@ -1158,13 +1213,14 @@ module COBALT_send_diag
           used = g_send_data(cobalt%id_chlmiscos,  (phyto(LARGE)%theta(:,:,1) * cobalt%nlg_misc(:,:,1) + &
             phyto(MEDIUM)%theta(:,:,1) * cobalt%nmd_misc(:,:,1)) * cobalt%c_2_n * cobalt%Rho_0 * 12.0e-3, &
             model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
-          used = g_send_data(cobalt%id_ponos, (cobalt%p_ndi(:,:,1,tau)+cobalt%p_nlg(:,:,1,tau)+ &
-            cobalt%p_nmd(:,:,1,tau)+cobalt%p_nsm(:,:,1,tau)+cobalt%p_nbact(:,:,1,tau)+cobalt%p_ndet(:,:,1,tau)+ &
-            cobalt%p_nsmz(:,:,1,tau)+cobalt%p_nmdz(:,:,1,tau)+cobalt%p_nlgz(:,:,1,tau))*cobalt%Rho_0, &
+          used = g_send_data(cobalt%id_ponos, (cobalt%p_ndi(:,:,1,tau) + cobalt%p_nlg(:,:,1,tau) + &
+            cobalt%p_nmd(:,:,1,tau) + cobalt%p_nsm(:,:,1,tau) + cobalt%p_nbact(:,:,1,tau) + &
+            cobalt%p_ndet(:,:,1,tau) + cobalt%p_ndet_fast(:,:,1,tau) + cobalt%p_nsmz(:,:,1,tau) + & ! YZ: fast-sinking, 07/07/2025
+            cobalt%p_nmdz(:,:,1,tau) + cobalt%p_nlgz(:,:,1,tau))*cobalt%Rho_0, &
             model_time, rmask = grid_tmask(:,:,1),is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
-          used = g_send_data(cobalt%id_popos, (cobalt%p_pdi(:,:,1,tau)+cobalt%p_plg(:,:,1,tau)+ & 
-            cobalt%p_pmd(:,:,1,tau)+cobalt%p_psm(:,:,1,tau)+bact(1)%q_p_2_n*cobalt%p_nbact(:,:,1,tau)+ &
-            cobalt%p_pdet(:,:,1,tau)+zoo(1)%q_p_2_n*cobalt%p_nsmz(:,:,1,tau)+ &
+          used = g_send_data(cobalt%id_popos, (cobalt%p_pdi(:,:,1,tau) + cobalt%p_plg(:,:,1,tau)+ & 
+            cobalt%p_pmd(:,:,1,tau) + cobalt%p_psm(:,:,1,tau) + bact(1)%q_p_2_n * cobalt%p_nbact(:,:,1,tau) + &
+            cobalt%p_pdet(:,:,1,tau) + cobalt%p_pdet_fast(:,:,1,tau) + zoo(1)%q_p_2_n * cobalt%p_nsmz(:,:,1,tau) + & ! YZ
             zoo(2)%q_p_2_n*cobalt%p_nmdz(:,:,1,tau)+zoo(3)%q_p_2_n*cobalt%p_nlgz(:,:,1,tau))*cobalt%Rho_0, &
             model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
           used = g_send_data(cobalt%id_bfeos, (cobalt%p_fedi(:,:,1,tau) + cobalt%p_felg(:,:,1,tau) + &
@@ -1496,8 +1552,14 @@ module COBALT_send_diag
           ! >>
           used = g_send_data(cobalt%id_jprod_ndet, cobalt%jprod_ndet, &
             model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
+          ! YZ: fast-sinking, 07/07/2025 {
+          used = g_send_data(cobalt%id_jprod_ndet_fast, cobalt%jprod_ndet_fast, &
+            model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk) ! } YZ
           used = g_send_data(cobalt%id_jprod_pdet, cobalt%jprod_pdet, &
             model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
+          ! YZ: fast-sinking, 07/07/2025 {
+          used = g_send_data(cobalt%id_jprod_pdet_fast, cobalt%jprod_pdet_fast, &
+            model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk) ! } YZ
           used = g_send_data(cobalt%id_jprod_srdon, cobalt%jprod_srdon, &
             model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
           used = g_send_data(cobalt%id_jprod_sldon, cobalt%jprod_sldon, &
@@ -1534,8 +1596,14 @@ module COBALT_send_diag
             model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
           used = g_send_data(cobalt%id_jremin_ndet, cobalt%jremin_ndet, &
             model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
+          ! YZ: fast-sinking, 07/07/2025 {
+          used = g_send_data(cobalt%id_jremin_ndet_fast, cobalt%jremin_ndet_fast, &
+            model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk) ! } YZ
           used = g_send_data(cobalt%id_jremin_pdet, cobalt%jremin_pdet, &
             model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
+          ! YZ: fast-sinking, 07/07/2025 {
+          used = g_send_data(cobalt%id_jremin_pdet_fast, cobalt%jremin_pdet_fast, &
+            model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk) ! } YZ
           used = g_send_data(cobalt%id_jremin_fedet, cobalt%jremin_fedet, &
             model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
           used = g_send_data(cobalt%id_det_jzloss_n, cobalt%det_jzloss_n, &
@@ -1871,6 +1939,9 @@ module COBALT_send_diag
             model_time, rmask = grid_tmask(:,:,1),  is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
           used = g_send_data(cobalt%id_jremin_ndet_100, cobalt%jremin_ndet_100, &
             model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc, ie_in=iec, je_in=jec) 
+          ! YZ: fast-sinking, 07/07/2025 {
+          used = g_send_data(cobalt%id_jremin_ndet_fast_100, cobalt%jremin_ndet_fast_100, &
+            model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc, ie_in=iec, je_in=jec) ! } YZ
           !
           ! << Neritic CaCO3 burial 150m flux integrals
           used = g_send_data(cobalt%id_jdic_caco3_nerbur_150, cobalt%jdic_caco3_nerbur_150, &
@@ -1934,6 +2005,9 @@ module COBALT_send_diag
             model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
           used = g_send_data(cobalt%id_jndet, cobalt%jndet, &
             model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
+          ! YZ: fast-sinking, 07/07/2025 {
+          used = g_send_data(cobalt%id_jndet_fast, cobalt%jndet_fast, &
+            model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk) ! } YZ
           used = g_send_data(cobalt%id_jnh4_plus_btm, cobalt%jnh4_plus_btm, &
             model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
           used = g_send_data(cobalt%id_jo2_plus_btm, cobalt%jo2_plus_btm, &
