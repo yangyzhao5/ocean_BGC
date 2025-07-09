@@ -544,8 +544,20 @@ contains
     !   Effect is to increase alkalinity by 552/472 = 1.169 NO3 equivalents.
     !
     ! Anammox:
-    !   5NH4+ + 3NO3- --> 4N2 + 9H2O + 2H+
-    !   Effect is to decrease alkalinity by 0.4 mole equivalents per mole of NH4 removed
+    ! !  5NH4+ + 3NO3- --> 4N2 + 9H2O + 2H+
+    ! !  Effect is to decrease alkalinity by 0.4 mole equivalents per mole of NH4 removed
+    ! YZ: amx, 08/07/2025 {
+    !   Anaerobic ammonium oxidation with nitrite which is mainly sourced from
+    !   nitrate reduction during anaerobic remineralization of organic material.
+    !   
+    !   Nitrate reduction to nitrite (denit0):
+    !   C106H172O38N16 + 236*NO3- + 16*H+ --> 106*CO2 + 16*NH4+ + 236*NO2- + 62*H2O
+    !   Anammox:
+    !   NH4+ + NO2- --> N2 + 2*H2O
+    !   Combined denit0 and anammox:
+    !   C106H172O38N16 + 236*NO3- + 220*NH4+ + 16*H+ --> 106*CO2 + 236*N2 + 62*H2O
+    !   Effect is to increase alkalinity by 16/236 = 0.068 NO3 equivalents.
+    ! } YZ
     !
     ! Sulfate reduction/HS- oxidation in the sediment: 
     ! In the sediment, organic material that is not buried or remineralized via denitrification
@@ -573,9 +585,9 @@ contains
     call get_param(param_file, "generic_COBALT", "n_2_n_denit", cobalt%n_2_n_denit, &
                    "moles NO3 used per mole org. N remineralized via denitrification", &
                    units="mol N mol N-1",default= 472.0/(5.0*16.0))
-    call get_param(param_file, "generic_COBALT", "no3_2_nh4_amx", cobalt%no3_2_nh4_amx, &
-                   "moles NO3 used per mole NH4+ oxidized to N2 via anammox",units="mol N mol N-1", &
-                   default = 3.0/5.0)
+    call get_param(param_file, "generic_COBALT", "nh4_2_no3_amx", cobalt%nh4_2_no3_amx, &
+                   "moles NH4+ used per mole NO3- reduced to N2 via anammox",units="mol N mol N-1", &
+                   default = 220.0/236.0) ! YZ: amx, 08/07/2025 change from no3_2_nh4_amx = 3.0/5.0
     call get_param(param_file, "generic_COBALT", "o2_2_nfix", cobalt%o2_2_nfix, &
                    "moles O2 created per mole of N fixed", units="mol O2 mol N-1", default= 130.0/16.0)
     call get_param(param_file, "generic_COBALT", "o2_2_nh4", cobalt%o2_2_nh4, &
@@ -588,9 +600,9 @@ contains
     call get_param(param_file, "generic_COBALT", "alk_2_n_denit", cobalt%alk_2_n_denit, &
                    "moles alkalinity created per mole NO3- consumed during denitrification", & 
                    units="mol alk mol N-1 ", default= 552.0/472.0)
-    call get_param(param_file, "generic_COBALT", "alk_2_nh4_amx", cobalt%alk_2_nh4_amx, &
-                   "moles alkalinity removed per mole NH4+ consumed via anammox", units="mol alk mol N-1", &
-                   default= 2.0/5.0)
+    call get_param(param_file, "generic_COBALT", "alk_2_no3_amx", cobalt%alk_2_no3_amx, &
+                   "moles alkalinity removed per mole NO3- consumed via anammox", units="mol alk mol N-1", &
+                   default= 16.0/236.0) ! YZ: amx, 08/07/2025 change from alk_2_nh4_amx = 2.0/5.0
     !
     !-----------------------------------------------------------------------
     ! Nutrient Limitation Parameters (phytoplankton)
@@ -1518,14 +1530,20 @@ contains
     ! Organic matter remineralization: Oxygen and temperature dependence follows Laufkotter et al. (2017).
     call get_param(param_file, "generic_COBALT", "k_o2", cobalt%k_o2, "O2 half-saturation for remineralization", &
                    units="mol O2 kg-1", default= 8.0e-6)
+    ! YZ: amx, 08/07/2025 {
+    call get_param(param_file, "generic_COBALT", "k_o2_denit0",  cobalt%k_o2_denit0, &
+                   "oxygen poisoning for during nitrate reduction to nitrite", units="mol O2 kg-1", &
+                   default= 6.0e-06) ! } YZ
     call get_param(param_file, "generic_COBALT", "k_no3_denit", cobalt%k_no3_denit, &
-           "nitrate half-saturation for denitrification", units="mol NO3 kg-1", default= 1.0e-6)
-    call get_param(param_file, "generic_COBALT", "o2_min", cobalt%o2_min, "Minimum O2 for aerobic remineralization", &
-                   units="mol O2 kg-1", default= 0.8e-6)
+                   "nitrate half-saturation for denitrification", units="mol NO3 kg-1", &
+                   default= 1.0e-6)
+    call get_param(param_file, "generic_COBALT", "o2_min", cobalt%o2_min, &
+                   "Minimum O2 for aerobic remineralization", units="mol O2 kg-1", default= 0.8e-6)
     call get_param(param_file, "generic_COBALT", "kappa_remin", cobalt%kappa_remin, &
                    "Temperature dependence of remineralization", units="deg C-1", default=0.063)
     call get_param(param_file, "generic_COBALT", "remin_ramp_scale", cobalt%remin_ramp_scale, &
-                   "depth scale from the surface over which remineralization ramps up", units="m", default= 50.0)
+                   "depth scale from the surface over which remineralization ramps up", units="m", &
+                   default= 50.0)
     ! gamma_ndet is set to produce a Martin-curve like remineralization length scale at temperatures ~10 deg. C
     call get_param(param_file, "generic_COBALT", "gamma_ndet", cobalt%gamma_ndet, &
                    "Remineralization rate for unprotected organic matter", units="s-1", default=cobalt%wsink/350.0)
@@ -1533,6 +1551,11 @@ contains
     call get_param(param_file, "generic_COBALT", "gamma_ndet_fast", cobalt%gamma_ndet_fast, &
                    "Remineralization rate for fast-sinking unprotected organic matter", units="s-1", &
                    default=cobalt%wsink_fast/3500.0) ! } YZ
+    ! YZ: amx, 08/07/2025 {
+    call get_param(param_file, "generic_COBALT", "gamma_ndet_denit0", cobalt%gamma_ndet_denit0, &
+                   "Remineralization rate for unprotected organic matter during nitrate reduction to nitrite", &
+                   units="s-1", default=cobalt%wsink/1250.0) ! } YZ
+    
     ! mineral ballasting after Klaas and Archer (2002) and Dunne et al. (2007) (see p. 3) 
     ! conversion is 0.070 g C (g Ca)-1 to moles N (mole Ca)-1; Similar conversions below, but lith remains per gram
     call get_param(param_file, "generic_COBALT", "rpcaco3", cobalt%rpcaco3, "Organic matter protection from CaCO3", &
@@ -1759,12 +1782,19 @@ contains
     ! Anammox parameterization developed for ESM4.5.  This relatively new process is turned off in the default CEFI
     ! configuration by setting the rate constant to 0.  To activate, set this constant to 0.07 day-1.  Translated to
     ! sec-1 by the model
-    call get_param(param_file, "generic_COBALT", "gamma_nh4amx", cobalt%gamma_nh4amx, "annamox rate constant", &
-                   units="day-1", default=0.0, scale=I_sperd)
+    call get_param(param_file, "generic_COBALT", "gamma_no3amx", cobalt%gamma_no3amx, "anammox rate constant", &
+                   units="day-1", default=0.0, scale=I_sperd) ! YZ: amx, 08/07/2025 change from gamma_nh4amx
     call get_param(param_file, "generic_COBALT", "o2_max_amx", cobalt%o2_max_amx, &
                    "maximum o2 concentration for anammox to occur", units="mol O2 kg-1", default=4.0e-6)
     call get_param(param_file, "generic_COBALT", "k_no3_amx", cobalt%k_no3_amx, &
                    "nitrate half-saturation for anammox", units="mol NO3 kg-1", default= 1.0e-6)
+    ! YZ: amx, 08/07/2025 {
+    call get_param(param_file, "generic_COBALT", "k_nh4_amx", cobalt%k_nh4_amx, &
+                   "ammonium half-saturation for anammox", units="mol NH4 kg-1", default= 1.0e-6)
+    call get_param(param_file, "generic_COBALT", "k_o2_amx", cobalt%k_o2_amx, &
+                   "oxygen half-saturation for anammox", units="mol O2 kg-1", default= 6.0e-6)
+    ! } YZ
+
     !
     !-----------------------------------------------------------------------
     ! Miscellaneous
@@ -3468,6 +3498,7 @@ contains
        cobalt%jno3denit_wc(i,j,k) = 0.0
        cobalt%jremin_ndet(i,j,k) = 0.0
        cobalt%jremin_ndet_fast(i,j,k) = 0.0 ! YZ: fast-sinking, 07/07/2025
+       cobalt%jremin_ndet_amx(i,j,k) = 0.0  ! YZ: amx, 08/07/2025
        cobalt%jo2resp_wc(i,j,k) = 0.0
     enddo;  enddo ;  enddo !} i,j,k
 !
@@ -3975,25 +4006,45 @@ contains
 
     ! Anammox converts NH4+ to N2 using NO3- in low O2 environments.
     ! This was not included in ESM4.1 and gamma_nh4amx is currently 0.0
-    ! by default. 
+    ! by default.
+    ! YZ: amx, 08/07/2025 {
+    ! Here anammox is assumed to convert NH4 to N2 using nitrite from nitrate 
+    ! reduction during denitrification in low O2 environments, which is 
+    ! constrained by the availability of particulate organic material. 
+    ! Anammox is also inhibited by oxygen and NH4 concentrations. 
     do k = 1, nk ; do j = jsc, jec ; do i = isc, iec   !{
 
        if (cobalt%f_o2(i,j,k) .lt. cobalt%o2_max_amx) then !{
          ! Uptake of NH4+ and NO3- through the anammox process
-         cobalt%juptake_nh4amx(i,j,k) = cobalt%gamma_nh4amx * &
+         cobalt%juptake_no3amx(i,j,k) = cobalt%gamma_no3amx * &
             cobalt%f_no3(i,j,k) / (cobalt%k_no3_amx + cobalt%f_no3(i,j,k)) * &
-            cobalt%f_nh4(i,j,k)
-         cobalt%juptake_no3amx(i,j,k) = cobalt%juptake_nh4amx(i,j,k)*&
-            cobalt%no3_2_nh4_amx
+            cobalt%f_nh4(i,j,k) / (cobalt%k_nh4_amx + cobalt%f_nh4(i,j,k)) * &
+            cobalt%f_nh4(i,j,k) * exp( - cobalt%f_o2(i,j,k) / cobalt%k_o2_amx)
+         ! Constrain anammox by particulate organic material availability
+         cobalt%expkreminT(i,j,k) = exp(cobalt%kappa_remin * Temp(i,j,k))
+         cobalt%juptake_no3amx(i,j,k) = min(cobalt%juptake_no3amx(i,j,k), &
+            cobalt%n_2_n_denit * 5.0/2.0 * cobalt%gamma_ndet_denit0 * cobalt%expkreminT(i,j,k) * &
+            exp( - cobalt%f_o2(i,j,k) / cobalt%k_o2_denit0 ) * &
+            cobalt%f_no3(i,j,k) / (cobalt%k_no3_denit + cobalt%f_no3(i,j,k))* &
+            max(0.0, cobalt%f_ndet(i,j,k) - &
+            cobalt%rpcaco3*(cobalt%f_cadet_arag(i,j,k) + cobalt%f_cadet_calc(i,j,k)) - &
+            cobalt%rplith*cobalt%f_lithdet(i,j,k) - cobalt%rpsio2*cobalt%f_sidet(i,j,k) ))
+   
+         cobalt%juptake_nh4amx(i,j,k) = cobalt%juptake_no3amx(i,j,k) * &
+            cobalt%nh4_2_no3_amx
+         cobalt%jremin_ndet_amx(i,j,k) = cobalt%juptake_no3amx(i,j,k) * &
+            (1.0 - cobalt%nh4_2_no3_amx)
          ! N lost to N2 via anammox
-         cobalt%jnamx(i,j,k) = cobalt%juptake_nh4amx(i,j,k) + cobalt%juptake_no3amx(i,j,k)
+         cobalt%jnamx(i,j,k) = cobalt%juptake_nh4amx(i,j,k) + cobalt%juptake_no3amx(i,j,k) + & 
+            cobalt%jremin_ndet_amx(i,j,k)
        else
          cobalt%juptake_nh4amx(i,j,k) = 0.0
          cobalt%juptake_no3amx(i,j,k) = 0.0
+         cobalt%jremin_ndet_amx(i,j,k) = 0.0
          cobalt%jnamx(i,j,k) = 0.0
        endif !}
 
-    enddo; enddo; enddo  !} i,j,k
+    enddo; enddo; enddo  !} i,j,k ! } YZ
 
     !
     !  Calculate nitrification rates.  There are three possible schemes to use.  Schemes 2 and 3 are
@@ -5004,6 +5055,9 @@ contains
           cobalt%jprod_nh4(i,j,k) = cobalt%jprod_nh4(i,j,k) + cobalt%jremin_ndet(i,j,k) + cobalt%jremin_ndet_fast(i,j,k) ! } YZ
        endif !}
 
+       ! Augment remineralization by anammox
+       cobalt%jremin_ndet(i,j,k) = cobalt%jremin_ndet(i,j,k) + cobalt%jremin_ndet_amx(i,j,k)
+
        ! P is assumed to be remineralized in direct proportion to N, resulting in PO4 release
        cobalt%jremin_pdet(i,j,k) = cobalt%jremin_ndet(i,j,k) / (cobalt%f_ndet(i,j,k) + epsln) * cobalt%f_pdet(i,j,k)
        ! YZ: fast-sinking, 07/07/2025 {
@@ -5988,8 +6042,8 @@ contains
           phyto(DIAZO)%juptake_no3(i,j,k) + phyto(LARGE)%juptake_no3(i,j,k) + &
           phyto(MEDIUM)%juptake_no3(i,j,k) + phyto(SMALL)%juptake_no3(i,j,k) + &
           (cobalt%jo2resp_wc(i,j,k)-cobalt%juptake_nh4nitrif(i,j,k)*cobalt%o2_2_nitrif)/cobalt%o2_2_nh4 + &
-          cobalt%alk_2_n_denit*cobalt%jno3denit_wc(i,j,k) - &
-          cobalt%alk_2_nh4_amx*cobalt%juptake_nh4amx(i,j,k) - &
+          cobalt%alk_2_n_denit*cobalt%jno3denit_wc(i,j,k) + &
+          cobalt%alk_2_no3_amx*cobalt%juptake_no3amx(i,j,k) - & ! YZ: amx, 08/07/2025, note '-' -> '+'
           phyto(DIAZO)%juptake_nh4(i,j,k) - phyto(LARGE)%juptake_nh4(i,j,k) - &
           phyto(MEDIUM)%juptake_nh4(i,j,k) - &
           phyto(SMALL)%juptake_nh4(i,j,k) - 2.0 * cobalt%juptake_nh4nitrif(i,j,k)
@@ -6004,8 +6058,9 @@ contains
        !
        ! Dissolved Inorganic Carbon
        !
-
-       cobalt%jdic(i,j,k) =(cobalt%c_2_n * (cobalt%jprod_nh4(i,j,k) - &
+       ! YZ: amx, 08/07/2025 {
+       ! Remineralization of organic material by anammox is not included in jprod_nh4
+       cobalt%jdic(i,j,k) =(cobalt%c_2_n * (cobalt%jprod_nh4(i,j,k) + cobalt%jremin_ndet_amx(i,j,k) - & ! } YZ
           phyto(DIAZO)%juptake_no3(i,j,k) - phyto(LARGE)%juptake_no3(i,j,k) - &
           phyto(MEDIUM)%juptake_no3(i,j,k) - phyto(SMALL)%juptake_no3(i,j,k) - &
           phyto(DIAZO)%juptake_nh4(i,j,k) - phyto(LARGE)%juptake_nh4(i,j,k) - &
@@ -7643,6 +7698,7 @@ contains
     allocate(cobalt%jdiss_sidet(isd:ied, jsd:jed, 1:nk))  ; cobalt%jdiss_sidet=0.0
     allocate(cobalt%jremin_ndet(isd:ied, jsd:jed, 1:nk))  ; cobalt%jremin_ndet=0.0
     allocate(cobalt%jremin_ndet_fast(isd:ied, jsd:jed, 1:nk)); cobalt%jremin_ndet_fast=0.0 ! YZ: fast-sinking, 07/07/2025
+    allocate(cobalt%jremin_ndet_amx(isd:ied, jsd:jed, 1:nk))  ; cobalt%jremin_ndet_amx=0.0 ! YZ: amx, 08/07/2025
     allocate(cobalt%jremin_pdet(isd:ied, jsd:jed, 1:nk))  ; cobalt%jremin_pdet=0.0
     allocate(cobalt%jremin_pdet_fast(isd:ied, jsd:jed, 1:nk)); cobalt%jremin_pdet_fast=0.0 ! YZ: fast-sinking, 07/07/2025
     allocate(cobalt%jremin_fedet(isd:ied, jsd:jed, 1:nk)) ; cobalt%jremin_fedet=0.0
@@ -8223,6 +8279,7 @@ contains
     deallocate(cobalt%jdiss_sidet)
     deallocate(cobalt%jremin_ndet)
     deallocate(cobalt%jremin_ndet_fast) ! YZ: fast-sinking, 07/07/2025
+    deallocate(cobalt%jremin_ndet_amx)  ! YZ: amx, 08/07/2025
     deallocate(cobalt%jremin_pdet)
     deallocate(cobalt%jremin_pdet_fast) ! YZ: fast-sinking, 07/07/2025
     deallocate(cobalt%jremin_fedet)

@@ -1685,6 +1685,12 @@ module COBALT_reg_diag
     cobalt%id_jremin_ndet_fast = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
          init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1) ! } YZ
 
+    !YZ: amx, 08/07/2025 {
+    vardesc_temp = vardesc("jremin_ndet_amx","Nitrogen detritus remineralization for anammox",&
+                           'h','L','s','mol N kg-1 s-1','f')
+    cobalt%id_jremin_ndet_amx = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1) ! } YZ
+
     vardesc_temp = vardesc("jremin_pdet","Phosphorous detritus remineralization",&
                            'h','L','s','mol P kg-1 s-1','f')
     cobalt%id_jremin_pdet = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&

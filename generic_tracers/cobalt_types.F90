@@ -466,6 +466,7 @@ module cobalt_types
           gamma_mu_mem,     &
           gamma_ndet,       &
           gamma_ndet_fast,  & ! YZ: fast-sinking, 07/07/2025
+          gamma_ndet_denit0,& ! YZ: amx, 08/07/2025
           gamma_nitrif,     &
           k_nh3_nitrif,     &
           nitrif_b,         &
@@ -475,7 +476,7 @@ module cobalt_types
           gamma_sldon,      &
           gamma_sldop,      &
           gamma_tsldon,     &  ! YZ: R2OMIP, 07/07/2025
-          gamma_nh4amx,     &
+          gamma_no3amx,     &  ! YZ: amx, 08/07/2025 change from gamma_nh4amx
           kappa_sidet,      &
           irr_inhibit,      &
           k_n_inhib_di,     &
@@ -498,9 +499,12 @@ module cobalt_types
           alk_2_n_denit,    &
           n_2_n_denit,      &
           k_no3_denit,      &
+          k_o2_denit0,      & ! YZ: amx, 08/07/2025
           k_no3_amx,        &
-          no3_2_nh4_amx,    &
-          alk_2_nh4_amx,    &
+          k_nh4_amx,        & ! YZ: amx, 08/07/2025 {
+          k_o2_amx,         &
+          nh4_2_no3_amx,    & ! change from no3_2_nh4_amx
+          alk_2_no3_amx,    & ! change from alk_2_nh4_amx } YZ
           z_burial,         &
           scale_burial,     &
           z_denit,          &
@@ -715,6 +719,7 @@ module cobalt_types
           jdiss_sidet,&
           jremin_ndet,&
           jremin_ndet_fast,& ! YZ: fast-sinking, 07/07/2025
+          jremin_ndet_amx,&  ! YZ: amx, 08/07/2025
           jremin_pdet,&
           jremin_pdet_fast,& ! YZ: fast-sinking, 07/07/2025
           jremin_fedet,&
@@ -1041,6 +1046,7 @@ module cobalt_types
           id_jdiss_cadet_calc_plus_btm = -1, &
           id_jremin_ndet   = -1,       &
           id_jremin_ndet_fast = -1,    & ! YZ: fast-sinking, 07/07/2025
+          id_jremin_ndet_amx  = -1,    & ! YZ: amx, 08/07/2025
           id_jremin_pdet   = -1,       &
           id_jremin_pdet_fast = -1,    & ! YZ: fast-sinking, 07/07/2025
           id_jremin_fedet  = -1,       &
@@ -1075,7 +1081,7 @@ module cobalt_types
           id_jno3denit_wc  = -1,       &
           id_juptake_no3amx = -1,      &
           id_juptake_nh4amx = -1,      &
-          id_jnamx = -1,               &
+          id_jnamx         = -1,       &
           id_juptake_nh4nitrif = -1,   &
           id_jprod_no3nitrif = -1,     &
           id_jo2resp_wc    = -1,       &

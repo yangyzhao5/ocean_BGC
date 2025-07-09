@@ -1599,6 +1599,11 @@ module COBALT_send_diag
           ! YZ: fast-sinking, 07/07/2025 {
           used = g_send_data(cobalt%id_jremin_ndet_fast, cobalt%jremin_ndet_fast, &
             model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk) ! } YZ
+          
+          ! YZ: amx, 08/07/2025 {
+          used = g_send_data(cobalt%id_jremin_ndet_amx, cobalt%jremin_ndet_amx, &
+            model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk) ! } YZ
+
           used = g_send_data(cobalt%id_jremin_pdet, cobalt%jremin_pdet, &
             model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
           ! YZ: fast-sinking, 07/07/2025 {
