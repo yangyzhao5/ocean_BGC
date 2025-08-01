@@ -1707,6 +1707,21 @@ module COBALT_reg_diag
     cobalt%id_jremin_fedet = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
          init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
 
+    ! YZ: N2O_module, 13/06/2025 {
+    vardesc_temp = vardesc("jremin_ndet_denit1","Nitrogen detritus remineralization by denitrification from nitrate to N2O",&
+                           'h','L','s','mol N kg-1 s-1','f')
+    cobalt%id_jremin_ndet_denit1 = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+    vardesc_temp = vardesc("jremin_ndet_denit2","Nitrogen detritus remineralization by denitrification from N2O to N2",&
+                           'h','L','s','mol N kg-1 s-1','f')
+    cobalt%id_jremin_ndet_denit2 = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+    vardesc_temp = vardesc("jremin_ndet_denit0","Nitrogen detritus remineralization by denitrification from nitrate to nitrite",&
+                           'h','L','s','mol N kg-1 s-1','f')
+    cobalt%id_jremin_ndet_denit0 = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+    ! } YZ
+
     !
     ! iron cycling diagnostics
     !
@@ -1828,6 +1843,40 @@ module COBALT_reg_diag
     cobalt%id_juptake_no3amx = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
              init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
 
+    ! YZ: N2O_module, 13/06/2025 {
+    !
+    ! N2O diagnostics
+    !
+
+    vardesc_temp = vardesc("jprod_n2o_nit","N2O production from nitrification",'h','L','s','mol N2O kg-1 s-1','f')
+    cobalt%id_jprod_n2o_nit = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+
+    vardesc_temp = vardesc("jprod_n2o_denit","N2O production from denitrification",'h','L','s','mol N2O kg-1 s-1','f')
+    cobalt%id_jprod_n2o_denit = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+   
+    vardesc_temp = vardesc("jsink_n2o","N2O consumption",'h','L','s','mol N2O kg-1 s-1','f')
+    cobalt%id_jsink_n2o = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+   
+    vardesc_temp = vardesc("jsink_n2o_nit","Consumption of N2O from nitrification",'h','L','s','mol N2O kg-1 s-1','f')
+    cobalt%id_jsink_n2o_nit = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+   
+    vardesc_temp = vardesc("jsink_n2o_denit","Consumption of N2O from denitrification",'h','L','s','mol N2O kg-1 s-1','f')
+    cobalt%id_jsink_n2o_denit = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+   
+    vardesc_temp = vardesc("jsink_n2o_atm","Consumption of N2O from the atmosphere",'h','L','s','mol N2O kg-1 s-1','f')
+    cobalt%id_jsink_n2o_atm = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+   
+    vardesc_temp = vardesc("jsink_n2o_sed","Consumption of N2O from the sediments",'h','L','s','mol N2O kg-1 s-1','f')
+    cobalt%id_jsink_n2o_sed = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+    ! } YZ
+
     !
     ! Track total aerobic respiration in the water column
     !
@@ -1875,6 +1924,28 @@ module COBALT_reg_diag
     vardesc_temp = vardesc("total_filter_feeding","Total filter feeding by large organisms",'h','L','s','mol N kg-1 s-1','f')
     cobalt%id_total_filter_feeding = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
          init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+
+    ! YZ: N2O_module, 13/06/2025 {
+    vardesc_temp = vardesc("tot_layer_int_n2o","Total nitrous oxide boxwise",'h','L','s','mol m-2','f')
+    cobalt%id_tot_layer_int_n2o = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+    
+    vardesc_temp = vardesc("tot_layer_int_n2o_nit","Total N2O from nitrification boxwise",'h','L','s','mol m-2','f')
+    cobalt%id_tot_layer_int_n2o_nit = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+    
+    vardesc_temp = vardesc("tot_layer_int_n2o_denit","Total N2O from denitrification boxwise",'h','L','s','mol m-2','f')
+    cobalt%id_tot_layer_int_n2o_denit = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+    
+    vardesc_temp = vardesc("tot_layer_int_n2o_atm","Total N2O from the atmosphere boxwise",'h','L','s','mol m-2','f')
+    cobalt%id_tot_layer_int_n2o_atm = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+    
+    vardesc_temp = vardesc("tot_layer_int_n2o_sed","Total N2O from the sediments boxwise",'h','L','s','mol m-2','f')
+    cobalt%id_tot_layer_int_n2o_sed = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+    ! } YZ
 
     !
     !  Save river, depositon and bulk elemental fluxes
@@ -2318,6 +2389,27 @@ module COBALT_reg_diag
     cobalt%id_b_sio4 = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
 
+    ! YZ: N2O_module, 13/06/2025 {
+    vardesc_temp = vardesc("b_n2o","Benthic n2o flux into ocean",'h','1','s','mol m-2 s-1','f')
+    cobalt%id_b_n2o = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
+        init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+
+    vardesc_temp = vardesc("b_n2o_nit","Benthic n2o_nit flux into ocean",'h','1','s','mol m-2 s-1','f')
+    cobalt%id_b_n2o_nit = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
+        init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+
+    vardesc_temp = vardesc("b_n2o_denit","Benthic n2o_denit flux into ocean",'h','1','s','mol m-2 s-1','f')
+    cobalt%id_b_n2o_denit = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
+        init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+
+    vardesc_temp = vardesc("b_n2o_atm","Benthic n2o_atm flux into ocean",'h','1','s','mol m-2 s-1','f')
+    cobalt%id_b_n2o_atm = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
+        init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+
+    vardesc_temp = vardesc("b_n2o_sed","Benthic n2o_sed flux into ocean",'h','1','s','mol m-2 s-1','f')
+    cobalt%id_b_n2o_sed = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
+        init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1) ! } YZ
+
     !
     ! Surface Diagnostics
     !
@@ -2345,6 +2437,11 @@ module COBALT_reg_diag
     vardesc_temp = vardesc("nh3_csurf","concentration of nh3 in water",'h','1','s','mol kg-1','f')
     cobalt%id_nh3_csurf = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
          init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+
+    ! YZ: N2O_module, 13/06/2025 {
+    vardesc_temp = vardesc("n2osat","Dissolved N2O Concentration at Saturation",'h','1','s','mol kg-1','f')
+    cobalt%id_n2osat = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
+        init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)  ! } YZ
 
     vardesc_temp = vardesc("sfc_alk","Surface Alkalinity",'h','1','s','eq kg-1','f')
     cobalt%id_sfc_alk = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
@@ -2423,6 +2520,27 @@ module COBALT_reg_diag
     cobalt%id_sfc_temp = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
          init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
 
+    ! YZ: N2O_module, 13/06/2025 {
+    vardesc_temp = vardesc("sfc_n2o","Surface Nitrous Oxide",'h','1','s','mol kg-1','f')
+    cobalt%id_sfc_n2o = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
+        init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+
+    vardesc_temp = vardesc("sfc_n2o_nit","Surface Nitrous Oxide Sourced from Nitrification",'h','1','s','mol kg-1','f')
+    cobalt%id_sfc_n2o_nit = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
+        init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+
+    vardesc_temp = vardesc("sfc_n2o_denit","Surface Nitrous Oxide Sourced from Denitrification",'h','1','s','mol kg-1','f')
+    cobalt%id_sfc_n2o_denit = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
+        init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+
+    vardesc_temp = vardesc("sfc_n2o_atm","Surface Nitrous Oxide Sourced from the Atmosphere",'h','1','s','mol kg-1','f')
+    cobalt%id_sfc_n2o_atm = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
+        init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+
+    vardesc_temp = vardesc("sfc_n2o_sed","Surface Nitrous Oxide Sourced from Sediments",'h','1','s','mol kg-1','f')
+    cobalt%id_sfc_n2o_sed = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
+        init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1) ! } YZ
+
     vardesc_temp = vardesc("btm_temp","Bottom Temperature",'h','1','s','deg C','f')
     cobalt%id_btm_temp = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
          init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
@@ -2466,6 +2584,27 @@ module COBALT_reg_diag
     vardesc_temp = vardesc("btm_omega_calc","Bottom saturation state for calcite",'h','1','s','none','f')
     cobalt%id_btm_omega_calc = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
          init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+
+    ! YZ: N2O_module, 13/06/2025 {
+    vardesc_temp = vardesc("btm_n2o","Bottom nitrous oxide",'h','1','s','mol kg-1','f')
+    cobalt%id_btm_n2o = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
+        init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+    
+    vardesc_temp = vardesc("btm_n2o_nit","Bottom nitrous oxide sourced from nitrification",'h','1','s','mol kg-1','f')
+    cobalt%id_btm_n2o_nit = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
+        init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+
+    vardesc_temp = vardesc("btm_n2o_denit","Bottom nitrous oxide sourced from denitrification",'h','1','s','mol kg-1','f')
+    cobalt%id_btm_n2o_denit = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
+        init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+
+    vardesc_temp = vardesc("btm_n2o_atm","Bottom nitrous oxide sourced from the atmosphere",'h','1','s','mol kg-1','f')
+    cobalt%id_btm_n2o_atm = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
+        init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+
+    vardesc_temp = vardesc("btm_n2o_sed","Bottom nitrous oxide sourced from sediments",'h','1','s','mol kg-1','f')
+    cobalt%id_btm_n2o_sed = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
+        init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1) ! } YZ
 
  ! Diagnostics to assess averaging over the bottom mixed layer.
     vardesc_temp = vardesc("grid_kmt_diag","The k-index of the bottom grid cell",'h','1','s','none','f')
@@ -3072,6 +3211,35 @@ module COBALT_reg_diag
     cobalt%id_wc_vert_int_jpo4_iceberg = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
          init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
 
+    ! YZ: N2O_module, 13/06/2025
+    vardesc_temp = vardesc("wc_vert_int_jprod_n2o_nit"," Water column N2O production from nitrification, vertical integral",&
+                           'h','1','s','mol N2O m-2 s-1','f')
+    cobalt%id_wc_vert_int_jprod_n2o_nit = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+    vardesc_temp = vardesc("wc_vert_int_jprod_n2o_denit"," Water column N2O production from denitrification, vertical integral",&
+                           'h','1','s','mol N2O m-2 s-1','f')
+    cobalt%id_wc_vert_int_jprod_n2o_denit = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+    vardesc_temp = vardesc("wc_vert_int_jsink_n2o"," Water column N2O consumption vertical integral",'h','1','s','mol N2O m-2 s-1','f')
+    cobalt%id_wc_vert_int_jsink_n2o = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+    vardesc_temp = vardesc("wc_vert_int_jsink_n2o_nit"," Water column consumption of N2O from nitrification vertical integral",&
+                           'h','1','s','mol N2O m-2 s-1','f')
+    cobalt%id_wc_vert_int_jsink_n2o_nit = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+    vardesc_temp = vardesc("wc_vert_int_jsink_n2o_denit"," Water column consumption of N2O from denitrification vertical integral",&
+                           'h','1','s','mol N2O m-2 s-1','f')
+    cobalt%id_wc_vert_int_jsink_n2o_denit = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+    vardesc_temp = vardesc("wc_vert_int_jsink_n2o_atm"," Water column consumption of N2O from the atmosphere vertical integral",&
+                           'h','1','s','mol N2O m-2 s-1','f')
+    cobalt%id_wc_vert_int_jsink_n2o_atm = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+    vardesc_temp = vardesc("wc_vert_int_jsink_n2o_sed"," Water column consumption of N2O from the sediments vertical integral",&
+                           'h','1','s','mol N2O m-2 s-1','f')
+    cobalt%id_wc_vert_int_jsink_n2o_sed = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)  ! } YZ
+
     !
     ! 100m integrated biomass
     !
@@ -3200,6 +3368,27 @@ module COBALT_reg_diag
     vardesc_temp = vardesc("wc_vert_int_alk","Total alkalinity vertical integral",'h','1','s','mol m-2','f')
     cobalt%id_wc_vert_int_alk = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
          init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+
+    ! YZ: N2O_module, 13/06/2025 {
+    vardesc_temp = vardesc("wc_vert_int_n2o","Total nitrous oxide vertical integral",'h','1','s','mol m-2','f')
+    cobalt%id_wc_vert_int_n2o = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+
+    vardesc_temp = vardesc("wc_vert_int_n2o_nit","Total N2O from nitrification vertical integral",'h','1','s','mol m-2','f')
+    cobalt%id_wc_vert_int_n2o_nit = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+   
+    vardesc_temp = vardesc("wc_vert_int_n2o_denit","Total N2O from denitrification vertical integral",'h','1','s','mol m-2','f')
+    cobalt%id_wc_vert_int_n2o_denit = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+   
+    vardesc_temp = vardesc("wc_vert_int_n2o_atm","Total N2O from the atmosphere vertical integral",'h','1','s','mol m-2','f')
+    cobalt%id_wc_vert_int_n2o_atm = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+   
+    vardesc_temp = vardesc("wc_vert_int_n2o_sed","Total N2O from the sediments vertical integral",'h','1','s','mol m-2','f')
+    cobalt%id_wc_vert_int_n2o_sed = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)  ! } YZ
 
     !
     ! sinking flux = 100m
@@ -3368,6 +3557,46 @@ module COBALT_reg_diag
     cobalt%id_jo2 = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
          init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
 
+    ! YZ: N2O_module, 13/06/2025 {
+    vardesc_temp = vardesc("jn2o","Nitrous oxide source",'h','L','s','mol kg-1 s-1','f')
+    cobalt%id_jn2o = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+   
+    vardesc_temp = vardesc("jn2o_nit","Nitrous oxide source from nitrification",'h','L','s','mol kg-1 s-1','f')
+    cobalt%id_jn2o_nit = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+   
+    vardesc_temp = vardesc("jn2o_denit","Nitrous oxide source from denitrification",'h','L','s','mol kg-1 s-1','f')
+    cobalt%id_jn2o_denit = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+   
+    vardesc_temp = vardesc("jn2o_atm","Nitrous oxide source from the atmosphere",'h','L','s','mol kg-1 s-1','f')
+    cobalt%id_jn2o_atm = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+   
+    vardesc_temp = vardesc("jn2o_sed","Nitrous oxide source from the sediments",'h','L','s','mol kg-1 s-1','f')
+    cobalt%id_jn2o_sed = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)  
+    
+    vardesc_temp = vardesc("jn2o_plus_btm","Nitrous oxide source plus btm",'h','L','s','mol kg-1 s-1','f')
+    cobalt%id_jn2o_plus_btm = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+
+    vardesc_temp = vardesc("jn2o_nit_plus_btm","Nitrous oxide source from nitrification plus btm",'h','L','s','mol kg-1 s-1','f')
+    cobalt%id_jn2o_nit_plus_btm = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+
+    vardesc_temp = vardesc("jn2o_denit_plus_btm","Nitrous oxide source from denitrification plus btm",'h','L','s','mol kg-1 s-1','f')
+    cobalt%id_jn2o_denit_plus_btm = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+
+    vardesc_temp = vardesc("jn2o_atm_plus_btm","Nitrous oxide source from the atmosphere plus btm",'h','L','s','mol kg-1 s-1','f')
+    cobalt%id_jn2o_atm_plus_btm = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+
+    vardesc_temp = vardesc("jn2o_sed_plus_btm","Nitrous oxide source from the sediments plus btm",'h','L','s','mol kg-1 s-1','f')
+    cobalt%id_jn2o_sed_plus_btm = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)  ! } YZ
 
 !==============================================================================================================
 ! 2016/07/05 jgj register and send temperature as a test

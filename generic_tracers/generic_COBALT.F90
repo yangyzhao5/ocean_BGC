@@ -100,6 +100,27 @@
 !   	tsldon: terrestrial semi-labile dissolved organic nitrogen
 ! } YZ
 !
+! YZ: N2O_module, 13/06/2025 {
+!   COBALTv3-N2O: Yangyang Zhao (yangyzhao@princeton.edu)
+!   	implement the N2O module with a prognostic tracer N2O and five decomposed
+!   	tracers N2O_nit, N2O_denit, N2O_atm, N2O_sed, and N2O_pre for N2O that was produced by
+!   	nitrification, denitrification, sourced from the atmosphere and sediments, and preformed
+!             biological-produced. N2O is produced by nitrification as a byproduct and by
+!   	denitrification as an obligate intermediate, and is consumed by denitrification to
+!   	dinitrogen (N2). The formulation of water column denitrification (anaerobic remineralization of particulate 
+!	organic material) is thus divided into two steps, i.e., nitrate reduction to N2O and N2O reduction to N2. 
+!	N2O production during anaerobic remineralization of dissolved organic material is currently not 
+!	considered and will be included later. N2O released from sediments is assumed to be proportional to 
+!	sedimentary denitrification rates. 
+!  	 
+!   	5 newly added tracers:
+!   	n2o: nitrous oxide
+!   	n2o_nit: nitrous oxide that was produced by nitrification
+!   	n2o_denit: nitrous oxide that was produced by denitrification
+!   	n2o_atm: nitrous oxide that was derived from the atmosphere
+!	n2o_sed: nitrous oxide that was released from sediments
+! } YZ
+!
 !<NAMELIST NAME="generic_COBALT_nml">
 !
 !  <DATA NAME="do_14c" TYPE="logical">
@@ -115,12 +136,25 @@
 !  </DATA>
 ! } YZ
 !
+! YZ: N2O_module, 13/06/2025 {
+!  <DATA NAME="do_n2o" TYPE="logical">
+!  If true, then simulate nitrous oxide. Includes 1 prognostic tracers, N2O.
+!  </DATA>
+!
+!  < DATA NAME="do_n2o_decomp" TYPE="logical">
+!  If true, then conduct nitrous oxide tracer decomposition. Incudes 4
+!  prognostic tracers, N2O_nit, N2O_denit, N2O_atm, N2O_sed
+!  </DATA>
+! } YZ
+!
 !</NAMELIST>
 !
 !</DESCRIPTION>
 !
 ! <INFO>
 ! <REFERENCE>
+!
+! Zhao et al. (2025) https://doi.org/10.1029/2024GB008481
 !
 ! Stock et al. (submitted).  Photoacclimation and photoadaptation sensitivity
 ! in a global ocean ecosystem model.  JAMES 
@@ -149,7 +183,7 @@ module generic_COBALT
   use mpp_mod,           only: input_nml_file, mpp_error, stdlog, NOTE, WARNING, FATAL, stdout, mpp_chksum
   use time_manager_mod,  only: time_type, day_of_year
   use fm_util_mod,       only: fm_util_start_namelist, fm_util_end_namelist
-  use constants_mod,     only: WTMCO2, WTMO2,WTMN,rdgas,wtmair
+  use constants_mod,     only: WTMCO2, WTMO2,WTMN,rdgas,wtmair,WTMN2O   ! YZ: N2O_module, 13/06/2025
   use data_override_mod, only: data_override
   use fms_mod,           only: write_version_number, FATAL, WARNING, stdout, stdlog,mpp_pe,mpp_root_pe
   use fms_mod,           only: check_nml_error
@@ -197,8 +231,9 @@ module generic_COBALT
                                              !! in generic_COBALT_nml.
 
   namelist /generic_COBALT_nml/ co2_calc, do_14c, do_nh3_atm_ocean_exchange, scheme_nitrif, debug, &
-     do_vertfill_pre,imbalance_tolerance,as_param_cobalt,do_r2omip ! YZ: R2OMIP, 07/07/2025
-  
+     do_vertfill_pre,imbalance_tolerance,as_param_cobalt,do_r2omip,& ! YZ: R2OMIP, 07/07/2025
+     do_n2o,do_n2o_decomp  ! YZ: N2O_module, 13/06/2025
+
   !
   ! Array allocations and flux calculations assume that phyto(1) is the
   ! only phytoplankton group cabable of nitrogen uptake by N2 fixation while phyto(2:NUM_PHYTO)
@@ -274,6 +309,14 @@ contains
     ! YZ: R2OMIP, 07/07/2025 {
     if (do_r2omip) then !{
       write (stdoutunit,*) trim(note_header), 'Simulating for R2OMIP'
+    endif ! } YZ
+
+    ! YZ: N2O_module, 13/06/2025 {
+    if (do_n2o) then
+      write (stdoutunit,*) trim(note_header), 'Simulating nitrous oxide'
+      if (do_n2o_decomp) then
+        write (stdoutunit,*) trim(note_header), 'Conducting nitrous oxide decomposition'
+      endif
     endif ! } YZ
 
     if (trim(co2_calc) == 'mocsy') then
@@ -454,6 +497,25 @@ contains
                    units="ml L-1 (ppt salt)-1", default= -8.17083e-03)
     call get_param(param_file, "generic_COBALT", "c_0", cobalt%c_0, "O2 sat. regression coefficient", &
                    units="ml L-1 (ppt salt)-2", default= -4.88682e-07)
+    ! YZ: N2O_module, 13/06/2025 {
+    !------------------------------------------------------------------------------------------------------------------
+    ! Coefficients for N2O saturation based on Weiss and Price (1980). Nitrous oxide solubility in water and seawater.
+    ! Marine chemistry, 8(4), 347-359.
+    ! https://www.sciencedirect.com/science/article/pii/0304420380900249
+    ! Coefficients of K0 in mol/l/atm in Table II were used.
+    !------------------------------------------------------------------------------------------------------------------
+    call get_param(param_file, "generic_COBALT", "a_1_n2o", cobalt%a_1_n2o, "N2O sat. regression coefficient", &
+                   units="mol L-1 (atm)-1", default= -62.7062)
+    call get_param(param_file, "generic_COBALT", "a_2_n2o", cobalt%a_2_n2o, "N2O sat. regression coefficient", &
+                   units="mol L-1 (atm)-1", default= 97.3066)
+    call get_param(param_file, "generic_COBALT", "a_3_n2o", cobalt%a_3_n2o, "N2O sat. regression coefficient", &
+                   units="mol L-1 (atm)-1", default= 24.1406)
+    call get_param(param_file, "generic_COBALT", "b_1_n2o", cobalt%b_1_n2o, "N2O sat. regression coefficient", &
+                   units="mol L-1 (atm salt)-1", default= -5.8420e-02)
+    call get_param(param_file, "generic_COBALT", "b_2_n2o", cobalt%b_2_n2o, "N2O sat. regression coefficient", &
+                   units="mol L-1 (atm salt)-1", default=  3.3193e-02)
+    call get_param(param_file, "generic_COBALT", "b_3_n2o", cobalt%b_3_n2o, "N2O sat. regression coefficient", &
+                   units="mol L-1 (atm salt)-1", default= -5.1313e-03)    ! } YZ
     !------------------------------------------------------------------------------------------------------------------
     !     Schmidt number coefficients for calculating air-sea exchanges
     !------------------------------------------------------------------------------------------------------------------
@@ -485,6 +547,18 @@ contains
                        units="deg. C-3", default= -0.0306)
         call get_param(param_file, "generic_COBALT", "a5_o2", cobalt%a5_o2, "O2 Schmidt # regression coefficient", &
                        units="deg. C-4", default= 0.0)       ! Not used for W92
+        ! YZ: N2O_module, 13/06/2025 {
+        !  Compute the Schmidt number of N2O in seawater using the W92_extended relationships as above
+        call get_param(param_file, "generic_COBALT", "a1_n2o", cobalt%a1_n2o, "N2O Schmidt # regression coefficient", &
+                       units="dimensionless", default= 2301.1)
+        call get_param(param_file, "generic_COBALT", "a2_n2o", cobalt%a2_n2o, "N2O Schmidt # regression coefficient", &
+                       units="deg. C-1", default= -151.1)
+        call get_param(param_file, "generic_COBALT", "a3_n2o", cobalt%a3_n2o, "N2O Schmidt # regression coefficient", &
+                       units="deg. C-2", default= 4.7364)
+        call get_param(param_file, "generic_COBALT", "a4_n2o", cobalt%a4_n2o, "N2O Schmidt # regression coefficient", &
+                       units="deg. C-3", default= -5.9431e-02)
+        call get_param(param_file, "generic_COBALT", "a5_n2o", cobalt%a5_n2o, "N2O Schmidt # regression coefficient", &
+                       units="deg. C-4", default= 0.0)       ! Not used for W92  ! } YZ
     else if ((trim(as_param_cobalt) == "W14") .or. (trim(as_param_cobalt) == "gfdl_cmip6")) then
         !  Compute the Schmidt number of CO2 in seawater using the formulation presented in Wanninkhof et al., 2014.
         !  Relationship between wind speed and gas exchange over the ocean revisited.  Limnol. Oceanogr: Methods. 12,
@@ -512,6 +586,18 @@ contains
                        units="deg. C-3", default= -0.10939)
         call get_param(param_file, "generic_COBALT", "a5_o2", cobalt%a5_o2, "O2 Schmidt # regression coefficient", &
                        units="deg. C-4", default= 0.00093777)
+        ! YZ: N2O_module, 13/06/2025 {
+        !  Compute the Schmidt number of N2O in seawater using the W14 relationships as above
+        call get_param(param_file, "generic_COBALT", "a1_n2o", cobalt%a1_n2o, "N2O Schmidt # regression coefficient", &
+                       units="dimensionless", default= 2356.2)
+        call get_param(param_file, "generic_COBALT", "a2_n2o", cobalt%a2_n2o, "N2O Schmidt # regression coefficient", &
+                       units="deg. C-1", default= -166.38)
+        call get_param(param_file, "generic_COBALT", "a3_n2o", cobalt%a3_n2o, "N2O Schmidt # regression coefficient", &
+                       units="deg. C-2", default= 6.3952)
+        call get_param(param_file, "generic_COBALT", "a4_n2o", cobalt%a4_n2o, "N2O Schmidt # regression coefficient", &
+                       units="deg. C-3", default= -0.13422)
+        call get_param(param_file, "generic_COBALT", "a5_n2o", cobalt%a5_n2o, "N2O Schmidt # regression coefficient", &
+                       units="deg. C-4", default= 0.0011506) ! } YZ
     else
         call mpp_error(FATAL,"generic_cobalt: unable to set Schmidt number coefficients for as_param "//trim(as_param_cobalt))
     endif
@@ -542,6 +628,24 @@ contains
     ! Denitrification:
     !   C106H172O38N16 + 472/5*NO3- + 552/5*H+ <-> 106*CO2 + 16*NH4+ + 236/5*N2 + 546/5*H2O
     !   Effect is to increase alkalinity by 552/472 = 1.169 NO3 equivalents.
+    ! YZ: N2O_module, 13/06/2025 {
+    !   Denitrification is explicitly divided into two steps: nitrate reduction to N2O and N2O
+    !   reduction to N2. Nitrate reduction to nitrite is implicitly included and the nitrite that
+    !   does not go into N2O by heterotrophic denitrification or N2 by anammox is re-oxidized
+    !   back to nitrate.
+    !   Nitrate reduction to N2O (denit1):
+    !   C106H172O38N16 + 118*NO3- + 134*H+ <-> 106*CO2 + 16*NH4+ + 59*N2O + 121*H2O   
+    !   Effect is to increase alkalinity by 134/59 = 2.271 N2O equivalents.
+    !
+    !   N2O reduction to dinitrogen (denit2):
+    !   C106H172O38N16 + 236*N2O + 16*H+ <-> 106*CO2 + 16*NH4+ + 236*N2 + 62*H2O
+    !   Effect is to increase alkalinity by 16/236 = 0.068 N2O equivalents.
+    !
+    !   Nitrate reduction to nitrite (denit0):
+    !   C106H172O38N16 + 236*NO3- + 16*H+ <-> 106*CO2 + 16*NH4+ + 236*NO2- + 62*H2O
+    !   Nitrite re-oxidation to nitrate:
+    !   2*NO2- + O2 --> 2*NO3-
+    !   Total effect is to increase alkalinity by 16 NH4+ equivalents.   } YZ
     !
     ! Anammox:
     ! !  5NH4+ + 3NO3- --> 4N2 + 9H2O + 2H+
@@ -603,6 +707,13 @@ contains
     call get_param(param_file, "generic_COBALT", "alk_2_no3_amx", cobalt%alk_2_no3_amx, &
                    "moles alkalinity removed per mole NO3- consumed via anammox", units="mol alk mol N-1", &
                    default= 16.0/236.0) ! YZ: amx, 08/07/2025 change from alk_2_nh4_amx = 2.0/5.0
+    ! YZ: N2O_module, 13/06/2025 {
+    call get_param(param_file, "generic_COBALT", "alk_2_n2o_denit1", cobalt%alk_2_n2o_denit1, &
+                   "moles alkalinity created per mole N2O produced during nitrate reduction to N2O", &
+                   units="mol alk mol N2O-1 ", default= 134.0/59.0)
+    call get_param(param_file, "generic_COBALT", "alk_2_n2o_denit2", cobalt%alk_2_n2o_denit2, &
+                   "moles alkalinity created per mole N2O consumed during N2O reduction to N2", &
+                   units="mol alk mol N2O-1 ", default= 16.0/236.0)  ! } YZ
     !
     !-----------------------------------------------------------------------
     ! Nutrient Limitation Parameters (phytoplankton)
@@ -1555,7 +1666,14 @@ contains
     call get_param(param_file, "generic_COBALT", "gamma_ndet_denit0", cobalt%gamma_ndet_denit0, &
                    "Remineralization rate for unprotected organic matter during nitrate reduction to nitrite", &
                    units="s-1", default=cobalt%wsink/1250.0) ! } YZ
-    
+    ! YZ: N2O_module, 13/06/2025 {
+    call get_param(param_file, "generic_COBALT", "gamma_ndet_denit1", cobalt%gamma_ndet_denit1, &
+                   "Remineralization rate for unprotected organic matter during nitrate reduction to N2O", &
+                   units="s-1", default=cobalt%wsink/2500.0)
+    call get_param(param_file, "generic_COBALT", "gamma_ndet_denit2", cobalt%gamma_ndet_denit2, &
+                   "Remineralization rate for unprotected organic matter during N2O reduction to N2", & 
+                   units="s-1", default=cobalt%wsink/625.0)  ! } YZ
+
     ! mineral ballasting after Klaas and Archer (2002) and Dunne et al. (2007) (see p. 3) 
     ! conversion is 0.070 g C (g Ca)-1 to moles N (mole Ca)-1; Similar conversions below, but lith remains per gram
     call get_param(param_file, "generic_COBALT", "rpcaco3", cobalt%rpcaco3, "Organic matter protection from CaCO3", &
@@ -1792,8 +1910,28 @@ contains
     call get_param(param_file, "generic_COBALT", "k_nh4_amx", cobalt%k_nh4_amx, &
                    "ammonium half-saturation for anammox", units="mol NH4 kg-1", default= 1.0e-6)
     call get_param(param_file, "generic_COBALT", "k_o2_amx", cobalt%k_o2_amx, &
-                   "oxygen half-saturation for anammox", units="mol O2 kg-1", default= 6.0e-6)
-    ! } YZ
+                   "oxygen half-saturation for anammox", units="mol O2 kg-1", default= 6.0e-6)  ! } YZ
+
+    ! YZ: N2O_module, 13/06/2025 {
+    !-----------------------------------------------------------------------
+    ! Nitrous oxide production
+    !-----------------------------------------------------------------------
+    !
+    call get_param(param_file, "generic_COBALT", "alpha_n2o",  cobalt%alpha_n2o, &
+                   "scalar multiplier for N2O prod., O2 dependency", units="mol N2O (mol N)-1 * (mol O2 kg-1)", default= 2.0e-09)
+    call get_param(param_file, "generic_COBALT", "beta_n2o",  cobalt%beta_n2o, &
+                   "scalar multiplier for N2O production", units="mol N2O (mol N)-1", default= 8.0e-04)
+    call get_param(param_file, "generic_COBALT", "o2_max_denit",  cobalt%o2_max_denit, &
+                   "upper oxygen threshold for denitrification", units="mol O2 kg-1", default= 20.0e-06)
+    call get_param(param_file, "generic_COBALT", "k_o2_denit1",  cobalt%k_o2_denit1, &
+                   "oxygen poisoning for during nitrate reduction to N2O", units="mol O2 kg-1", default= 2.3e-06)
+    call get_param(param_file, "generic_COBALT", "k_o2_denit2",  cobalt%k_o2_denit2, &
+                   "oxygen poisoning for during N2O reduction to N2", units="mol O2 kg-1", default= 0.68e-06)
+    call get_param(param_file, "generic_COBALT", "k_n2o_denit",  cobalt%k_n2o_denit, &
+                   "half-saturation coefficient of N2O during N2O reduction to N2", units="mol N2O kg-1", default= 1.90e-07)
+    call get_param(param_file, "generic_COBALT", "n2o_2_n_sed",  cobalt%n2o_2_n_sed, &
+                   "scalar multiplier for N2O production from sedimentary denitrification", &
+                   units="mol N2O (mol N)-1", default= 0.5*3.0e-03)  ! } YZ
 
     !
     !-----------------------------------------------------------------------
@@ -2405,6 +2543,79 @@ contains
         units      = 'mol/kg',                  &
         prog       = .true.,                    &
         flux_param = (/ 1.0e-3 /))
+    endif !} ! } YZ
+
+    ! YZ: N2O_module, 13/06/2025 {
+    !
+    !    	N2O (Nitrous oxide)
+    !
+    if (do_n2o) then !{
+      call g_tracer_add(tracer_list,package_name,                       &
+        name       = 'n2o',                                             &
+        longname   = 'Nitrous oxide',                                   &
+        units      = 'mol/kg',                                          &
+        prog       = .true.,                                            &
+        flux_gas   = .true.,                                            &
+        flux_gas_name  = 'n2o_flux',                                    &
+        flux_gas_type  = 'air_sea_gas_flux_generic',                    &
+        flux_gas_molwt = WTMN2O,                                        &
+        flux_gas_param = (/ as_coeff_cobalt, 9.7561e-06 /),             &
+        flux_gas_restart_file  = 'ocean_cobalt_airsea_flux.res.nc',     &
+        flux_bottom= .true.)
+
+      if (do_n2o_decomp) then !{
+      call g_tracer_add(tracer_list,package_name,                       &
+        name       = 'n2o_nit',                                         &
+        longname   = 'Nitrous oxide from nitrification',                &
+        units      = 'mol/kg',                                          &
+        prog       = .true.,                                            &
+        flux_gas   = .true.,                                            &
+        flux_gas_name  = 'n2o_nit_flux',                                &
+        flux_gas_type  = 'air_sea_gas_flux_generic',                    &
+        flux_gas_molwt = WTMN2O,                                        &
+        flux_gas_param = (/ as_coeff_cobalt, 9.7561e-06 /),             &
+        flux_gas_restart_file  = 'ocean_cobalt_airsea_flux.res.nc',     &
+        flux_bottom= .true.)
+
+      call g_tracer_add(tracer_list,package_name,                       &
+        name       = 'n2o_denit',                                       &
+        longname   = 'Nitrous oxide from denitrification',              &
+        units      = 'mol/kg',                                          &
+        prog       = .true.,                                            &
+        flux_gas   = .true.,                                            &
+        flux_gas_name  = 'n2o_denit_flux',                              &
+        flux_gas_type  = 'air_sea_gas_flux_generic',                    &
+        flux_gas_molwt = WTMN2O,                                        &
+        flux_gas_param = (/ as_coeff_cobalt, 9.7561e-06 /),             &
+        flux_gas_restart_file  = 'ocean_cobalt_airsea_flux.res.nc',     &
+        flux_bottom= .true.)
+
+      call g_tracer_add(tracer_list,package_name,                       &
+        name       = 'n2o_atm',                                         &
+        longname   = 'Nitrous oxide from the atmosphere',               &
+        units      = 'mol/kg',                                          &
+        prog       = .true.,                                            &
+        flux_gas   = .true.,                                            &
+        flux_gas_name  = 'n2o_atm_flux',                                &
+        flux_gas_type  = 'air_sea_gas_flux_generic',                    &
+        flux_gas_molwt = WTMN2O,                                        &
+        flux_gas_param = (/ as_coeff_cobalt, 9.7561e-06 /),             &
+        flux_gas_restart_file  = 'ocean_cobalt_airsea_flux.res.nc',     &
+        flux_bottom= .true.)
+
+      call g_tracer_add(tracer_list,package_name,                       &
+        name       = 'n2o_sed',                                         &
+        longname   = 'Nitrous oxide from sediments',                    &
+        units      = 'mol/kg',                                          &
+        prog       = .true.,                                            &
+        flux_gas   = .true.,                                            &
+        flux_gas_name  = 'n2o_sed_flux',                                &
+        flux_gas_type  = 'air_sea_gas_flux_generic',                    &
+        flux_gas_molwt = WTMN2O,                                        &
+        flux_gas_param = (/ as_coeff_cobalt, 9.7561e-06 /),             &
+        flux_gas_restart_file  = 'ocean_cobalt_airsea_flux.res.nc',     &
+        flux_bottom= .true.)
+      endif !}
     endif !} ! } YZ
 
     !===========================================================
@@ -3183,6 +3394,7 @@ contains
     real :: fpoc_btm, log10_fpoc_btm
     real :: fe_salt
     real :: sal,tt,tkb,ts,ts2,ts3,ts4,ts5
+    real :: log100,tkn,tkn100,tkn1002,logtkn  ! YZ: N2O_module, 13/06/2025
     real :: rho_mld_ref,rho_k,dK,dKm1,afac,deltaRhoAtK,deltaRhoAtKm1,deltaRhoFlag
     real :: alpha_temp, alpha_step
     real :: P_C_max_temp, P_C_max_step, bresp_temp
@@ -3408,6 +3620,16 @@ contains
     if (do_r2omip) then !{
       call g_tracer_get_values(tracer_list,'tsldon'   ,'field',cobalt%f_tsldon   ,isd,jsd,positive=.true.)
     endif !} ! } YZ
+    ! YZ: N2O_module, 13/06/2025 {
+    if (do_n2o) then !{
+      call g_tracer_get_values(tracer_list,'n2o'      ,'field',cobalt%f_n2o      ,isd,jsd,positive=.true.)
+      if (do_n2o_decomp) then !{
+      call g_tracer_get_values(tracer_list,'n2o_nit'  ,'field',cobalt%f_n2o_nit  ,isd,jsd,positive=.true.)
+      call g_tracer_get_values(tracer_list,'n2o_denit','field',cobalt%f_n2o_denit,isd,jsd,positive=.true.)
+      call g_tracer_get_values(tracer_list,'n2o_atm'  ,'field',cobalt%f_n2o_atm  ,isd,jsd,positive=.true.)
+      call g_tracer_get_values(tracer_list,'n2o_sed'  ,'field',cobalt%f_n2o_sed  ,isd,jsd,positive=.true.)
+      endif !}
+    endif !} ! } YZ
     !
     ! phytoplankton fields
     !
@@ -3500,6 +3722,22 @@ contains
        cobalt%jremin_ndet_fast(i,j,k) = 0.0 ! YZ: fast-sinking, 07/07/2025
        cobalt%jremin_ndet_amx(i,j,k) = 0.0  ! YZ: amx, 08/07/2025
        cobalt%jo2resp_wc(i,j,k) = 0.0
+       ! YZ: N2O_module, 13/06/2025 {
+       if (do_n2o) then !{
+         cobalt%jremin_fedet(i,j,k) = 0.0
+         cobalt%jremin_ndet_denit1(i,j,k) = 0.0
+         cobalt%jremin_ndet_denit2(i,j,k) = 0.0
+         cobalt%jremin_ndet_denit0(i,j,k) = 0.0
+         cobalt%jprod_n2o_nit(i,j,k) = 0.0
+         cobalt%jprod_n2o_denit(i,j,k) = 0.0
+         cobalt%jsink_n2o(i,j,k) = 0.0
+         if (do_n2o_decomp) then !{
+         cobalt%jsink_n2o_nit(i,j,k) = 0.0
+         cobalt%jsink_n2o_denit(i,j,k) = 0.0
+         cobalt%jsink_n2o_atm(i,j,k) = 0.0
+         cobalt%jsink_n2o_sed(i,j,k) = 0.0
+         endif !}
+       endif !} ! } YZ
     enddo;  enddo ;  enddo !} i,j,k
 !
 !-----------------------------------------------------------------------------------
@@ -5018,6 +5256,101 @@ contains
     ! Klaas and Archer, 2002: https://agupubs.onlinelibrary.wiley.com/doi/full/10.1029/2001GB001765
     ! Dunne et al., 2005: https://agupubs.onlinelibrary.wiley.com/doi/full/10.1029/2004GB002390    
     !
+    ! YZ: N2O_module, 13/06/2025 {
+    ! Aerobic and anaerobic remineralization is allowed to co-exist when oxygen concentrations are between 10 nmol/kg
+    ! and about 10-20 umol/kg. Similar to aerobic remineralization, anaerobic remineralization is also dependent on
+    ! temperature. However, differing from aerobic remineralization, the oxygen inhibitation on anaerobic
+    ! remineralization is exponentially dependent on oxygen concentrations (Bianchi et al., 2023).
+    ! Anaerobic remineralization (i.e., heterotrophic denitrification) is divided into two steps in case of simulating
+    ! N2O cycles: 1) denit1 - nitrate reduction to N2O and 2) denit2 - N2O reduction to N2.
+    ! Note that nitrate reduction to nitrite (denit0) is implicitly represented, allowing nitrite that does not go into
+    ! N2O via denit1 or N2 via anammox is re-oxidized back to nitrate.
+    ! Note the ndet consumption by nitrate reduction for anammox should be subducted here.
+    !
+    ! References:
+    ! Bianchi et al., 2023: https://doi.org/10.5194/gmd-16-3581-2023
+    !
+    if (do_n2o) then !{
+    do k=1,nk ; do j=jsc,jec ; do i=isc,iec  !{
+       cobalt%expkreminT(i,j,k) = exp(cobalt%kappa_remin * Temp(i,j,k))
+       ! Calculate remineralization under aerobic remineralization
+       if (cobalt%f_o2(i,j,k) .gt. cobalt%o2_min_nit) then  !{
+          cobalt%jremin_ndet(i,j,k) = cobalt%gamma_ndet * cobalt%expkreminT(i,j,k) * &
+               zbot(i,j,k)/(zbot(i,j,k) + cobalt%remin_ramp_scale) * cobalt%f_o2(i,j,k) / &
+               ( cobalt%k_o2 + cobalt%f_o2(i,j,k) )*max( 0.0, cobalt%f_ndet(i,j,k) - &
+               cobalt%rpcaco3*(cobalt%f_cadet_arag(i,j,k) + cobalt%f_cadet_calc(i,j,k)) - &
+               cobalt%rplith*cobalt%f_lithdet(i,j,k) - cobalt%rpsio2*cobalt%f_sidet(i,j,k) )
+          ! Adding in the remineralization from fast sinking detritus
+          cobalt%jremin_ndet_fast(i,j,k) = cobalt%gamma_ndet_fast * cobalt%expkreminT(i,j,k) * &
+               cobalt%f_ndet_fast(i,j,k) * (cobalt%f_o2(i,j,k) / (cobalt%k_o2 + cobalt%f_o2(i,j,k)))
+          ! Augment total nh4 production and o2 consumption
+          cobalt%jprod_nh4(i,j,k) = cobalt%jprod_nh4(i,j,k) + cobalt%jremin_ndet(i,j,k) + cobalt%jremin_ndet_fast(i,j,k)
+          cobalt%jo2resp_wc(i,j,k) = cobalt%jo2resp_wc(i,j,k) + &
+               (cobalt%jremin_ndet(i,j,k) + cobalt%jremin_ndet_fast(i,j,k)) * cobalt%o2_2_nh4
+          ! Fe is assumed to be remineralized in proportion to N, but the proportionality is dictated by a
+          ! remineralization efficiency (remin_eff_fedet) which has been coarsely tuned to the ferrocline depth.
+          cobalt%jremin_fedet(i,j,k) = (cobalt%jremin_ndet(i,j,k) + cobalt%jremin_ndet_fast(i,j,k)) * &
+             (cobalt%f_ndet(i,j,k) + cobalt%f_ndet_fast(i,j,k) + epsln) * cobalt%remin_eff_fedet*cobalt%f_fedet(i,j,k)
+       endif !}
+       
+       ! Calculate remineralization under anaerobic conditions
+       if (cobalt%f_o2(i,j,k) .lt. cobalt%o2_max_denit) then  !{
+          ! Nitrate reduction to N2O
+          cobalt%jremin_ndet_denit1(i,j,k) = cobalt%gamma_ndet_denit1 * cobalt%expkreminT(i,j,k) * &
+               exp( - cobalt%f_o2(i,j,k) / cobalt%k_o2_denit1 ) * &
+               cobalt%f_no3(i,j,k) / (cobalt%k_no3_denit + cobalt%f_no3(i,j,k))* &
+               max(0.0, cobalt%f_ndet(i,j,k) - &
+               cobalt%rpcaco3*(cobalt%f_cadet_arag(i,j,k) + cobalt%f_cadet_calc(i,j,k)) - &
+               cobalt%rplith*cobalt%f_lithdet(i,j,k) - cobalt%rpsio2*cobalt%f_sidet(i,j,k) )
+          ! N2O reduction to N2
+          cobalt%jremin_ndet_denit2(i,j,k) = cobalt%gamma_ndet_denit2 * cobalt%expkreminT(i,j,k) * &
+               exp( - cobalt%f_o2(i,j,k) / cobalt%k_o2_denit2 ) * &
+               cobalt%f_n2o(i,j,k) / (cobalt%k_n2o_denit + cobalt%f_n2o(i,j,k))* &
+               max(0.0, cobalt%f_ndet(i,j,k) - &
+               cobalt%rpcaco3*(cobalt%f_cadet_arag(i,j,k) + cobalt%f_cadet_calc(i,j,k)) - &
+               cobalt%rplith*cobalt%f_lithdet(i,j,k) - cobalt%rpsio2*cobalt%f_sidet(i,j,k) )
+          ! Nitrate reduction to nitrite
+          cobalt%jremin_ndet_denit0(i,j,k) = cobalt%gamma_ndet_denit0 * cobalt%expkreminT(i,j,k) * &
+               exp( - cobalt%f_o2(i,j,k) / cobalt%k_o2_denit0 ) * &
+               cobalt%f_no3(i,j,k) / (cobalt%k_no3_denit + cobalt%f_no3(i,j,k))* &
+               max(0.0, cobalt%f_ndet(i,j,k) - &
+               cobalt%rpcaco3*(cobalt%f_cadet_arag(i,j,k) + cobalt%f_cadet_calc(i,j,k)) - &
+               cobalt%rplith*cobalt%f_lithdet(i,j,k) - cobalt%rpsio2*cobalt%f_sidet(i,j,k) )
+          ! Augment total nh4 production and no3 consumption
+          cobalt%jno3denit_wc(i,j,k) = cobalt%jno3denit_wc(i,j,k) + cobalt%jremin_ndet_denit1(i,j,k) * &
+               cobalt%n_2_n_denit * ( 5.0 / 4.0 )
+          cobalt%jprod_nh4(i,j,k) = cobalt%jprod_nh4(i,j,k) + cobalt%jremin_ndet_denit0(i,j,k) + &
+               cobalt%jremin_ndet_denit2(i,j,k) - cobalt%jremin_ndet_amx(i,j,k)
+          ! Augment total oxygen consumption for implicitly represented nitrite oxidation to nitrate
+          cobalt%jo2resp_wc(i,j,k) = cobalt%jo2resp_wc(i,j,k) + (cobalt%jremin_ndet_denit0(i,j,k) - &
+               cobalt%jremin_ndet_denit1(i,j,k) - cobalt%jremin_ndet_amx(i,j,k)) * cobalt%o2_2_nh4
+          ! Augment total ndet consumption
+          cobalt%jremin_ndet(i,j,k) = cobalt%jremin_ndet(i,j,k) + cobalt%jremin_ndet_denit0(i,j,k) + &
+               cobalt%jremin_ndet_denit2(i,j,k) - cobalt%jremin_ndet_amx(i,j,k)
+       endif !}
+
+       ! Augment total ndet consumption due to anammox
+       cobalt%jremin_ndet(i,j,k) = cobalt%jremin_ndet(i,j,k) + cobalt%jremin_ndet_amx(i,j,k)
+       
+       ! P is assumed to be remineralized in direct proportion to N, resulting in PO4 release
+       cobalt%jremin_pdet(i,j,k) = cobalt%jremin_ndet(i,j,k) / (cobalt%f_ndet(i,j,k) + epsln) * cobalt%f_pdet(i,j,k)
+       ! YZ: fast-sinking, 07/07/2025 {
+       cobalt%jremin_pdet_fast(i,j,k) = cobalt%jremin_ndet_fast(i,j,k) / &
+            (cobalt%f_ndet_fast(i,j,k) + epsln) * cobalt%f_pdet_fast(i,j,k)
+       cobalt%jprod_po4(i,j,k) = cobalt%jprod_po4(i,j,k) + cobalt%jremin_pdet(i,j,k) + cobalt%jremin_pdet_fast(i,j,k) ! } YZ
+
+       ! Fe is assumed to be remineralized in proportion to N, but the proportionality is dictated by a
+       ! remineralization efficiency (remin_eff_fedet) which has been coarsely tuned to the ferrocline depth.
+       ! In addition, it was noted in COBALTv2 (see Stock et al., 2020) that the proportionality between organic matter
+       ! and iron remineralization can lead to iron minima in low oxygen zones where organic remineralization is low.
+       ! Since low O2 is actually conducive to solubilizing iron, O2 inhibition of iron remineralization was removed.
+       cobalt%jremin_fedet(i,j,k) = cobalt%jremin_fedet(i,j,k) + &
+            (cobalt%jremin_ndet_denit0(i,j,k) / (exp( - cobalt%f_o2(i,j,k) + epsln) / cobalt%k_o2_denit0 ) + &
+            cobalt%jremin_ndet_denit2(i,j,k) / (exp( - cobalt%f_o2(i,j,k) + epsln) / cobalt%k_o2_denit2 )) / &
+            (cobalt%f_ndet(i,j,k) + epsln) * cobalt%remin_eff_fedet*cobalt%f_fedet(i,j,k)
+       cobalt%jprod_fed(i,j,k) = cobalt%jprod_fed(i,j,k) + cobalt%jremin_fedet(i,j,k)
+    enddo; enddo; enddo  !} i,j,k
+    else !}{ 
     do k=1,nk ; do j=jsc,jec ; do i=isc,iec  !{
        cobalt%expkreminT(i,j,k) = exp(cobalt%kappa_remin * Temp(i,j,k))
        ! Calculate remineralization under aerobic remineralization
@@ -5075,6 +5408,7 @@ contains
          (cobalt%f_ndet(i,j,k) + cobalt%f_ndet_fast(i,j,k) + epsln) * cobalt%remin_eff_fedet*cobalt%f_fedet(i,j,k)
        cobalt%jprod_fed(i,j,k) = cobalt%jprod_fed(i,j,k) + cobalt%jremin_fedet(i,j,k)
     enddo; enddo; enddo  !} i,j,k
+    endif !} ! } YZ
 
     ! << Enhanced CaCO3 dissolution driven by localized undersaturation around sinking particles >>
     ! Add CaCO3 dissolution enhancement associated with organic matter (OM) decomposition
@@ -5173,6 +5507,42 @@ contains
 
     enddo; enddo; enddo  !} i,j,k
 
+    ! YZ: N2O_module, 13/06/2025 {
+    !
+    ! 4.6: N2O production and consumption
+    !
+    ! N2O is produced by nitrification and nitrate reduction to N2O during denitrification, and consumed
+    ! by N2O reduction to N2 during denitrification.
+    ! N2O consumption by denitrification is proportional to their fraction in total N2O concentrations.
+    !
+    if (do_n2o) then !{
+       do k = 1, nk ; do j = jsc, jec ; do i = isc, iec   !{
+         ! N2O production via nitrification as a byproduct
+          if (cobalt%f_o2(i,j,k) .gt. cobalt%o2_min_nit ) then !{
+             cobalt%jprod_n2o_nit(i,j,k) = cobalt%juptake_nh4nitrif(i,j,k) * &
+                     (cobalt%alpha_n2o + cobalt%beta_n2o * cobalt%f_o2(i,j,k)) / &
+                     (cobalt%alpha_n2o + (cobalt%beta_n2o + 1.0) * cobalt%f_o2(i,j,k))
+          endif !}
+          
+          ! N2O production and consumption via denitrification
+          if (cobalt%f_o2(i,j,k) .lt. cobalt%o2_max_denit) then !{
+             cobalt%jprod_n2o_denit(i,j,k) = 0.5 * cobalt%jremin_ndet_denit1(i,j,k) * cobalt%n_2_n_denit * ( 5.0 / 4.0 )
+             cobalt%jsink_n2o(i,j,k) = 0.5 * cobalt%jremin_ndet_denit2(i,j,k) * cobalt%n_2_n_denit * 5.0
+          else !}{
+             cobalt%jprod_n2o_denit(i,j,k) = 0.0
+             cobalt%jsink_n2o(i,j,k) = 0.0
+          endif !}
+          
+          ! Calculate N2O consumption of different sources
+          if (do_n2o_decomp) then !{
+          cobalt%jsink_n2o_nit(i,j,k) = cobalt%f_n2o_nit(i,j,k) / (cobalt%f_n2o(i,j,k) + epsln) * cobalt%jsink_n2o(i,j,k)
+          cobalt%jsink_n2o_denit(i,j,k) = cobalt%f_n2o_denit(i,j,k) / (cobalt%f_n2o(i,j,k) + epsln) * cobalt%jsink_n2o(i,j,k)
+          cobalt%jsink_n2o_atm(i,j,k) = cobalt%f_n2o_atm(i,j,k) / (cobalt%f_n2o(i,j,k) + epsln) * cobalt%jsink_n2o(i,j,k)
+          cobalt%jsink_n2o_sed(i,j,k) = cobalt%f_n2o_sed(i,j,k) / (cobalt%f_n2o(i,j,k) + epsln) * cobalt%jsink_n2o(i,j,k)
+          endif !}
+       enddo; enddo; enddo  !} i,j,k
+    endif !}   ! } YZ
+
 !
 !-------------------------------------------------------------------------------------------------
 ! 5: Sediment, coastal and ice dynamics
@@ -5223,6 +5593,16 @@ contains
           cobalt%btm_co3_sol_calc(i,j) = 0.0
           cobalt%btm_co3_ion(i,j) = 0.0
           cobalt%btm_omega_calc(i,j) = 0.0
+          ! YZ: N2O_module, 13/06/2025 {
+          if (do_n2o) then !{
+            cobalt%btm_n2o(i,j) = 0.0
+            if (do_n2o_decomp) then !{
+            cobalt%btm_n2o_nit(i,j) = 0.0
+            cobalt%btm_n2o_denit(i,j) = 0.0
+            cobalt%btm_n2o_atm(i,j) = 0.0
+            cobalt%btm_n2o_sed(i,j) = 0.0
+            endif !}
+          endif !} ! } YZ
           k_bot(i,j) = 0
           ! Note that grid_kmt is always the total number of layers in MOM6
           do k = grid_kmt(i,j),1,-1   !{
@@ -5235,6 +5615,16 @@ contains
               cobalt%btm_no3(i,j) = cobalt%btm_no3(i,j) + cobalt%f_no3(i,j,k)*rho_dzt(i,j,k) 
               cobalt%btm_co3_sol_calc(i,j) = cobalt%btm_co3_sol_calc(i,j) + cobalt%co3_sol_calc(i,j,k)*rho_dzt(i,j,k) 
               cobalt%btm_co3_ion(i,j) = cobalt%btm_co3_ion(i,j) + cobalt%f_co3_ion(i,j,k)*rho_dzt(i,j,k) 
+              ! YZ: N2O_module, 13/06/2025 {
+              if (do_n2o) then !{
+                cobalt%btm_n2o(i,j) = cobalt%btm_n2o(i,j) + cobalt%f_n2o(i,j,k)*rho_dzt(i,j,k)
+                if (do_n2o_decomp) then !{
+                cobalt%btm_n2o_nit(i,j) = cobalt%btm_n2o_nit(i,j) + cobalt%f_n2o_nit(i,j,k)*rho_dzt(i,j,k)
+                cobalt%btm_n2o_denit(i,j) = cobalt%btm_n2o_denit(i,j) + cobalt%f_n2o_denit(i,j,k)*rho_dzt(i,j,k)
+                cobalt%btm_n2o_atm(i,j) = cobalt%btm_n2o_atm(i,j) + cobalt%f_n2o_atm(i,j,k)*rho_dzt(i,j,k)
+                cobalt%btm_n2o_sed(i,j) = cobalt%btm_n2o_sed(i,j) + cobalt%f_n2o_sed(i,j,k)*rho_dzt(i,j,k)
+                endif !}
+              endif !} ! } YZ
             endif
           enddo
           ! Subtract off overshoot
@@ -5243,11 +5633,31 @@ contains
           cobalt%btm_no3(i,j)=cobalt%btm_no3(i,j)-cobalt%f_no3(i,j,k_bot(i,j))*drho_dzt
           cobalt%btm_co3_sol_calc(i,j)=cobalt%btm_co3_sol_calc(i,j)-cobalt%co3_sol_calc(i,j,k_bot(i,j))*drho_dzt
           cobalt%btm_co3_ion(i,j)=cobalt%btm_co3_ion(i,j)-cobalt%f_co3_ion(i,j,k_bot(i,j))*drho_dzt
+          ! YZ: N2O_module, 13/06/2025 {
+          if (do_n2o) then !{
+            cobalt%btm_n2o(i,j)=cobalt%btm_n2o(i,j)-cobalt%f_n2o(i,j,k_bot(i,j))*drho_dzt
+            if (do_n2o_decomp) then !{
+            cobalt%btm_n2o_nit(i,j)=cobalt%btm_n2o_nit(i,j)-cobalt%f_n2o_nit(i,j,k_bot(i,j))*drho_dzt
+            cobalt%btm_n2o_denit(i,j)=cobalt%btm_n2o_denit(i,j)-cobalt%f_n2o_denit(i,j,k_bot(i,j))*drho_dzt
+            cobalt%btm_n2o_atm(i,j)=cobalt%btm_n2o_atm(i,j)-cobalt%f_n2o_atm(i,j,k_bot(i,j))*drho_dzt
+            cobalt%btm_n2o_sed(i,j)=cobalt%btm_n2o_sed(i,j)-cobalt%f_n2o_sed(i,j,k_bot(i,j))*drho_dzt
+            endif !}
+          endif !} ! } YZ
           ! convert back to moles kg-1
           cobalt%btm_o2(i,j)=cobalt%btm_o2(i,j)/(cobalt%bottom_thickness*cobalt%Rho_0)
           cobalt%btm_no3(i,j)=cobalt%btm_no3(i,j)/(cobalt%bottom_thickness*cobalt%Rho_0)
           cobalt%btm_co3_sol_calc(i,j)=cobalt%btm_co3_sol_calc(i,j)/(cobalt%bottom_thickness*cobalt%Rho_0)
           cobalt%btm_co3_ion(i,j)=cobalt%btm_co3_ion(i,j)/(cobalt%bottom_thickness*cobalt%Rho_0)
+          ! YZ: N2O_module, 13/06/2025 {
+          if (do_n2o) then !{
+            cobalt%btm_n2o(i,j)=cobalt%btm_n2o(i,j)/(cobalt%bottom_thickness*cobalt%Rho_0)
+            if (do_n2o_decomp) then !{
+            cobalt%btm_n2o_nit(i,j)=cobalt%btm_n2o_nit(i,j)/(cobalt%bottom_thickness*cobalt%Rho_0)
+            cobalt%btm_n2o_denit(i,j)=cobalt%btm_n2o_denit(i,j)/(cobalt%bottom_thickness*cobalt%Rho_0)
+            cobalt%btm_n2o_atm(i,j)=cobalt%btm_n2o_atm(i,j)/(cobalt%bottom_thickness*cobalt%Rho_0)
+            cobalt%btm_n2o_sed(i,j)=cobalt%btm_n2o_sed(i,j)/(cobalt%bottom_thickness*cobalt%Rho_0)
+            endif !}
+          endif !} ! } YZ
           ! calculate the saturation state with respect to calcite for subsequent calculations
           cobalt%btm_omega_calc(i,j)=cobalt%btm_co3_ion(i,j)/cobalt%btm_co3_sol_calc(i,j)
 
@@ -5489,6 +5899,16 @@ contains
           endif
           cobalt%b_po4(i,j) = - cobalt%fptot_btm(i,j) + cobalt%fp_burial(i,j)
           cobalt%b_sio4(i,j)= - cobalt%fsitot_btm(i,j)
+          ! YZ: N2O_module, 13/06/2025 {
+          if (do_n2o) then !{
+             cobalt%b_n2o(i,j) = - cobalt%fno3denit_sed(i,j) * cobalt%n2o_2_n_sed
+             if (do_n2o_decomp) then !{
+             cobalt%b_n2o_nit(i,j) = 0.0
+             cobalt%b_n2o_denit(i,j) = 0.0
+             cobalt%b_n2o_atm(i,j) = 0.0
+             cobalt%b_n2o_sed(i,j) = - cobalt%fno3denit_sed(i,j) * cobalt%n2o_2_n_sed
+             endif !}
+          endif !} ! } YZ
 
        endif !}
     enddo; enddo  !} i, j
@@ -5509,6 +5929,16 @@ contains
     call g_tracer_set_values(tracer_list,'o2',   'btf', cobalt%b_o2  ,isd,jsd)
     call g_tracer_set_values(tracer_list,'po4',  'btf', cobalt%b_po4 ,isd,jsd)
     call g_tracer_set_values(tracer_list,'sio4', 'btf', cobalt%b_sio4,isd,jsd)
+    ! YZ: N2O_module, 13/06/2025 {
+    if (do_n2o) then !{
+       call g_tracer_set_values(tracer_list,'n2o', 'btf', cobalt%b_n2o,isd,jsd)
+       if (do_n2o_decomp) then !{
+       call g_tracer_set_values(tracer_list,'n2o_nit', 'btf', cobalt%b_n2o_nit,isd,jsd)
+       call g_tracer_set_values(tracer_list,'n2o_denit', 'btf', cobalt%b_n2o_denit,isd,jsd)
+       call g_tracer_set_values(tracer_list,'n2o_atm', 'btf', cobalt%b_n2o_atm,isd,jsd)
+       call g_tracer_set_values(tracer_list,'n2o_sed', 'btf', cobalt%b_n2o_sed,isd,jsd)
+       endif !}
+    endif !}  ! } YZ
 !
     call mpp_clock_begin(id_clock_source_sink_loop1)
 !
@@ -5574,6 +6004,17 @@ contains
        call g_tracer_get_pointer(tracer_list,'tsldon','field',cobalt%p_tsldon)
     endif !} ! } YZ
 
+     ! YZ: N2O_module, 13/06/2025 {
+    if (do_n2o) then !{
+       call g_tracer_get_pointer(tracer_list,'n2o','field',cobalt%p_n2o)
+       if (do_n2o_decomp) then !{
+       call g_tracer_get_pointer(tracer_list,'n2o_nit','field',cobalt%p_n2o_nit)
+       call g_tracer_get_pointer(tracer_list,'n2o_denit','field',cobalt%p_n2o_denit)
+       call g_tracer_get_pointer(tracer_list,'n2o_atm','field',cobalt%p_n2o_atm)
+       call g_tracer_get_pointer(tracer_list,'n2o_sed','field',cobalt%p_n2o_sed)
+       endif !}
+    endif !} ! } YZ
+
     ! CAS calculate total N and P before source/sink
     ! calculate internal sources (those not applied as air-sea or benthos
     ! exchanges) to close the balance
@@ -5602,6 +6043,13 @@ contains
          endif !} ! } YZ
          net_srcn(i,j,k) = (phyto(DIAZO)%juptake_n2(i,j,k) - cobalt%jno3denit_wc(i,j,k) - &
                     cobalt%jnamx(i,j,k) + cobalt%jno3_iceberg(i,j,k))*dt*grid_tmask(i,j,k)
+         ! YZ: N2O_module, 13/06/2025 {
+         ! N loss via N2O production by denitrification has been calculated in jno3denit_wc,
+         ! only N loss via N2O production by nitrification as a byproduct should be accounted here
+         if (do_n2o) then !{
+            net_srcn(i,j,k) = net_srcn(i,j,k) - cobalt%jprod_n2o_nit(i,j,k) * 2.0 *dt*grid_tmask(i,j,k)
+         endif !} ! } YZ
+
          ! << Apply neritic CaCO3 burial contribution to net carbon source/sink term
          ! This term is zero when neritic burial is turned off (default: jdic_caco3_nerbur = 0.0)
          net_srcc(i,j,k) = -cobalt%jdic_caco3_nerbur(i,j,k) *dt*grid_tmask(i,j,k)
@@ -5850,6 +6298,11 @@ contains
                             cobalt%f_tsldon(i,j,k) * (1.0 - cobalt%p_2_n_td * &
                             cobalt%f_ldon(i,j,k)/(cobalt%f_ldop(i,j,k) + epsln))
        endif !} ! } YZ
+       ! YZ: N2O_module, 13/06/2025 {
+       ! account for N source for N2O production via nitrification from NH4 instead of NO3
+       if (do_n2o) then !{
+          cobalt%jnh4(i,j,k) = cobalt%jnh4(i,j,k) - cobalt%jprod_n2o_nit(i,j,k) * 2.0
+       endif !} ! } YZ
        cobalt%p_nh4(i,j,k,tau) = cobalt%p_nh4(i,j,k,tau) + cobalt%jnh4(i,j,k) * dt * grid_tmask(i,j,k)
        !
        ! PO4
@@ -6024,6 +6477,28 @@ contains
        cobalt%jo2(i,j,k) = cobalt%jo2(i,j,k) - cobalt%jo2resp_wc(i,j,k)
        cobalt%p_o2(i,j,k,tau) = cobalt%p_o2(i,j,k,tau) + cobalt%jo2(i,j,k) * dt * grid_tmask(i,j,k)
     enddo; enddo ; enddo  !} i,j,k
+    ! YZ: N2O_module, 13/06/2025 {
+    !
+    ! 	N2O
+    !
+    if (do_n2o) then !{
+    do k = 1, nk ; do j =jsc, jec ; do i = isc, iec   !{
+       cobalt%jn2o(i,j,k) = cobalt%jprod_n2o_nit(i,j,k) + cobalt%jprod_n2o_denit(i,j,k) - cobalt%jsink_n2o(i,j,k)
+       cobalt%p_n2o(i,j,k,tau) = cobalt%p_n2o(i,j,k,tau) + cobalt%jn2o(i,j,k) * dt * grid_tmask(i,j,k)
+
+       if (do_n2o_decomp) then !{
+       cobalt%jn2o_nit(i,j,k) = cobalt%jprod_n2o_nit(i,j,k) - cobalt%jsink_n2o_nit(i,j,k)
+       cobalt%jn2o_denit(i,j,k) = cobalt%jprod_n2o_denit(i,j,k) - cobalt%jsink_n2o_denit(i,j,k)
+       cobalt%jn2o_atm(i,j,k) = - cobalt%jsink_n2o_atm(i,j,k)
+       cobalt%jn2o_sed(i,j,k) = - cobalt%jsink_n2o_sed(i,j,k)
+
+       cobalt%p_n2o_nit(i,j,k,tau) = cobalt%p_n2o_nit(i,j,k,tau) + cobalt%jn2o_nit(i,j,k) * dt * grid_tmask(i,j,k)
+       cobalt%p_n2o_denit(i,j,k,tau) = cobalt%p_n2o_denit(i,j,k,tau) + cobalt%jn2o_denit(i,j,k) * dt * grid_tmask(i,j,k)
+       cobalt%p_n2o_atm(i,j,k,tau) = cobalt%p_n2o_atm(i,j,k,tau) + cobalt%jn2o_atm(i,j,k) * dt * grid_tmask(i,j,k)
+       cobalt%p_n2o_sed(i,j,k,tau) = cobalt%p_n2o_sed(i,j,k,tau) + cobalt%jn2o_sed(i,j,k) * dt * grid_tmask(i,j,k)
+       endif !}
+    enddo; enddo ; enddo  !} i,j,k
+    endif !} ! } YZ
     !
     !     The Carbon system
     !
@@ -6053,7 +6528,12 @@ contains
           cobalt%jalk(i,j,k) = cobalt%jalk(i,j,k) + cobalt%jtsldon(i,j,k) * (1.0 - cobalt%p_2_n_td * &
                                cobalt%f_ldon(i,j,k)/(cobalt%f_ldop(i,j,k) + epsln))
        endif !} ! } YZ
-
+       ! YZ: N2O_module, 13/06/2025 {
+       ! Modify the alkalinity changes due to denitrification
+       if (do_n2o) then !{
+          cobalt%jalk(i,j,k) = cobalt%jalk(i,j,k) + (cobalt%alk_2_n2o_denit1 - cobalt%alk_2_n_denit * 2.0) * &
+              cobalt%jprod_n2o_denit(i,j,k) + cobalt%alk_2_n2o_denit2*cobalt%jsink_n2o(i,j,k)
+       endif !} ! } YZ
        cobalt%p_alk(i,j,k,tau) = cobalt%p_alk(i,j,k,tau) + cobalt%jalk(i,j,k) * dt * grid_tmask(i,j,k)
        !
        ! Dissolved Inorganic Carbon
@@ -6344,6 +6824,24 @@ contains
 
     enddo; enddo ; enddo  !} i,j,k
 
+    ! YZ: N2O_module, 13/06/2025 {
+    ! Calculate the N2O saturation using the relationships of Weiss and Price (1980).
+    if (do_n2o) then !{
+    log100 = log(100.0)
+    do k = 1, nk  ; do j = jsc, jec ; do i = isc, iec !{
+       sal = min(42.0,max(0.0,Salt(i,j,k)))
+       tkn = 273.15 + min(40.0,max(0.0,Temp(i,j,k)))
+       tkn100 = tkn / 100.0
+       tkn1002 = tkn100 * tkn100
+       logtkn = log(tkn)
+
+       !The atmospheric code needs solubilities in units of mol/m3/atm
+       cobalt%n2osat(i,j,k) = 1000.0 * grid_tmask(i,j,1) * & !convert from mol/l to mol m-3
+            exp( cobalt%a_1_n2o + cobalt%a_2_n2o/tkn100 + cobalt%a_3_n2o*(logtkn-log100) + &
+            (cobalt%b_1_n2o + cobalt%b_2_n2o*tkn100 + cobalt%b_3_n2o*tkn1002)*sal)
+    enddo; enddo ; enddo  !} i,j,k
+    endif !} ! } YZ
+
     ! 
     ! Calculate layer integrals for key combinations of tracers, most of which are ultimately used to calculate global
     ! budgets.  The variable "rho_dzt" is the layer mass per unit area (kg m-2) calculated by multiplying the layer
@@ -6414,6 +6912,17 @@ contains
 
     cobalt%tot_layer_int_alk(:,:,:) = cobalt%p_alk(:,:,:,tau)*rho_dzt(:,:,:)
 
+    ! YZ: N2O_module, 13/06/2025 {
+    if (do_n2o) then !{
+       cobalt%tot_layer_int_n2o(:,:,:) = cobalt%p_n2o(:,:,:,tau)*rho_dzt(:,:,:)
+       if (do_n2o_decomp) then !{
+       cobalt%tot_layer_int_n2o_nit(:,:,:) = cobalt%p_n2o_nit(:,:,:,tau)*rho_dzt(:,:,:)
+       cobalt%tot_layer_int_n2o_denit(:,:,:) = cobalt%p_n2o_denit(:,:,:,tau)*rho_dzt(:,:,:)
+       cobalt%tot_layer_int_n2o_atm(:,:,:) = cobalt%p_n2o_atm(:,:,:,tau)*rho_dzt(:,:,:)
+       cobalt%tot_layer_int_n2o_sed(:,:,:) = cobalt%p_n2o_sed(:,:,:,tau)*rho_dzt(:,:,:)
+       endif !}
+    endif !} ! } YZ
+
     !
     ! calculate water column vertical integrals for tracers and fluxes (per unit area)
     ! tracer units are moles m-2, fluxes are moles sec-1 m-2
@@ -6446,6 +6955,23 @@ contains
        cobalt%wc_vert_int_jfe_iceberg(i,j) = 0.0      ! wc integrated iron additions from icebergs
        cobalt%wc_vert_int_jno3_iceberg(i,j) = 0.0     ! wc integrated no3 additions from icebergs
        cobalt%wc_vert_int_jpo4_iceberg(i,j) = 0.0     ! wc integrated po4 additions from icebergs
+       ! YZ: N2O_module, 13/06/2025 {
+       if (do_n2o) then !{
+          cobalt%wc_vert_int_n2o(i,j) = 0.0
+          cobalt%wc_vert_int_jprod_n2o_nit(i,j) = 0.0
+          cobalt%wc_vert_int_jprod_n2o_denit(i,j) = 0.0   
+          cobalt%wc_vert_int_jsink_n2o(i,j) = 0.0   
+          if (do_n2o_decomp) then !{
+          cobalt%wc_vert_int_n2o_nit(i,j) = 0.0
+          cobalt%wc_vert_int_n2o_denit(i,j) = 0.0
+          cobalt%wc_vert_int_n2o_atm(i,j) = 0.0
+          cobalt%wc_vert_int_n2o_sed(i,j) = 0.0
+          cobalt%wc_vert_int_jsink_n2o_nit(i,j) = 0.0
+          cobalt%wc_vert_int_jsink_n2o_denit(i,j) = 0.0
+          cobalt%wc_vert_int_jsink_n2o_atm(i,j) = 0.0
+          cobalt%wc_vert_int_jsink_n2o_sed(i,j) = 0.0
+          endif !}
+       endif !} ! } YZ
     enddo; enddo !} i,j
     do j = jsc, jec ; do i = isc, iec ; do k = 1, nk  !{
           ! Tracers ("tot_layer_int" variables already multiplied by "rho_dzt", so just sum over k to get moles m-2)
@@ -6459,6 +6985,20 @@ contains
           cobalt%wc_vert_int_si(i,j) = cobalt%wc_vert_int_si(i,j) + cobalt%tot_layer_int_si(i,j,k)*grid_tmask(i,j,k)
           cobalt%wc_vert_int_o2(i,j) = cobalt%wc_vert_int_o2(i,j) + cobalt%tot_layer_int_o2(i,j,k)*grid_tmask(i,j,k)
           cobalt%wc_vert_int_alk(i,j) = cobalt%wc_vert_int_alk(i,j) + cobalt%tot_layer_int_alk(i,j,k)*grid_tmask(i,j,k)
+          ! YZ: N2O_module, 13/06/2025 {
+          if (do_n2o) then !{
+             cobalt%wc_vert_int_n2o(i,j) = cobalt%wc_vert_int_n2o(i,j) + cobalt%tot_layer_int_n2o(i,j,k)*grid_tmask(i,j,k)
+             if (do_n2o_decomp) then !{
+             cobalt%wc_vert_int_n2o_nit(i,j) = cobalt%wc_vert_int_n2o_nit(i,j) + &
+                cobalt%tot_layer_int_n2o_nit(i,j,k)*grid_tmask(i,j,k)
+             cobalt%wc_vert_int_n2o_denit(i,j) = cobalt%wc_vert_int_n2o_denit(i,j) + &
+                cobalt%tot_layer_int_n2o_denit(i,j,k)*grid_tmask(i,j,k)
+             cobalt%wc_vert_int_n2o_atm(i,j) = cobalt%wc_vert_int_n2o_atm(i,j) + &
+                cobalt%tot_layer_int_n2o_atm(i,j,k)*grid_tmask(i,j,k)
+             cobalt%wc_vert_int_n2o_sed(i,j) = cobalt%wc_vert_int_n2o_sed(i,j) + &
+                cobalt%tot_layer_int_n2o_sed(i,j,k)*grid_tmask(i,j,k)
+             endif !}
+          endif !} ! } YZ
 
           ! Fluxes, multiply by rho_dzt and sum over k to get from moles kg-1 sec-1 to moles m-2 sec-1
           cobalt%wc_vert_int_npp(i,j) = cobalt%wc_vert_int_npp(i,j) + (phyto(SMALL)%jprod_n(i,j,k) + &
@@ -6496,6 +7036,27 @@ contains
              rho_dzt(i,j,k) * grid_tmask(i,j,k)
           cobalt%wc_vert_int_jpo4_iceberg(i,j) = cobalt%wc_vert_int_jpo4_iceberg(i,j) + cobalt%jpo4_iceberg(i,j,k) *&
              rho_dzt(i,j,k) * grid_tmask(i,j,k)
+
+          ! YZ: N2O_module, 13/06/2025 {
+          if (do_n2o) then !{
+             cobalt%wc_vert_int_jprod_n2o_nit(i,j) = cobalt%wc_vert_int_jprod_n2o_nit(i,j) + &
+                cobalt%jprod_n2o_nit(i,j,k)*rho_dzt(i,j,k) * grid_tmask(i,j,k)
+             cobalt%wc_vert_int_jprod_n2o_denit(i,j) = cobalt%wc_vert_int_jprod_n2o_denit(i,j) + &
+                cobalt%jprod_n2o_denit(i,j,k)*rho_dzt(i,j,k) * grid_tmask(i,j,k)
+             cobalt%wc_vert_int_jsink_n2o(i,j) = cobalt%wc_vert_int_jsink_n2o(i,j) + &
+                cobalt%jsink_n2o(i,j,k)*rho_dzt(i,j,k) * grid_tmask(i,j,k)
+             if (do_n2o_decomp) then !{
+             cobalt%wc_vert_int_jsink_n2o_nit(i,j) = cobalt%wc_vert_int_jsink_n2o_nit(i,j) + &
+                cobalt%jsink_n2o_nit(i,j,k)*rho_dzt(i,j,k) * grid_tmask(i,j,k)
+             cobalt%wc_vert_int_jsink_n2o_denit(i,j) = cobalt%wc_vert_int_jsink_n2o_denit(i,j) + &
+                cobalt%jsink_n2o_denit(i,j,k)*rho_dzt(i,j,k) * grid_tmask(i,j,k)
+             cobalt%wc_vert_int_jsink_n2o_atm(i,j) = cobalt%wc_vert_int_jsink_n2o_atm(i,j) + &
+                cobalt%jsink_n2o_atm(i,j,k)*rho_dzt(i,j,k) * grid_tmask(i,j,k)
+             cobalt%wc_vert_int_jsink_n2o_sed(i,j) = cobalt%wc_vert_int_jsink_n2o_sed(i,j) + &
+                cobalt%jsink_n2o_sed(i,j,k)*rho_dzt(i,j,k) * grid_tmask(i,j,k)
+             endif !}
+          endif !} ! } YZ
+
     enddo; enddo; enddo  !} i,j,k
 
     !
@@ -6516,6 +7077,16 @@ contains
        cobalt%jpo4_plus_btm(i,j,k)  = cobalt%jpo4(i,j,k)
        cobalt%jsio4_plus_btm(i,j,k) = cobalt%jsio4(i,j,k)
        cobalt%jdin_plus_btm(i,j,k)  = cobalt%jno3(i,j,k) + cobalt%jnh4(i,j,k)
+       ! YZ: N2O_module, 13/06/2025 {
+       if (do_n2o) then !{
+         cobalt%jn2o_plus_btm(i,j,k)   = cobalt%jn2o(i,j,k)
+         if (do_n2o_decomp) then !{
+         cobalt%jn2o_nit_plus_btm(i,j,k)   = cobalt%jn2o_nit(i,j,k)
+         cobalt%jn2o_denit_plus_btm(i,j,k) = cobalt%jn2o_denit(i,j,k)
+         cobalt%jn2o_atm_plus_btm(i,j,k)   = cobalt%jn2o_atm(i,j,k)
+         cobalt%jn2o_sed_plus_btm(i,j,k)   = cobalt%jn2o_sed(i,j,k)
+         endif !}
+       endif !} ! } YZ
     enddo; enddo; enddo  !} i,j,k
 
     ! Then find all the layers within the specified bottom boundary layer thickness.  The first layer is always included.
@@ -6559,6 +7130,16 @@ contains
           cobalt%jpo4_plus_btm(i,j,k) = cobalt%jpo4(i,j,k) - cobalt%b_po4(i,j)/rho_dzt_bot(i,j) 
           cobalt%jsio4_plus_btm(i,j,k) = cobalt%jsio4(i,j,k) - cobalt%b_sio4(i,j)/rho_dzt_bot(i,j)
           cobalt%jdin_plus_btm(i,j,k)  = cobalt%jno3_plus_btm(i,j,k) + cobalt%jnh4_plus_btm(i,j,k)
+          ! YZ: N2O_module, 13/06/2025 {
+          if (do_n2o) then !{
+            cobalt%jn2o_plus_btm(i,j,k) = cobalt%jn2o(i,j,k) - cobalt%b_n2o(i,j)/rho_dzt_bot(i,j)
+            if (do_n2o_decomp) then !{
+            cobalt%jn2o_nit_plus_btm(i,j,k) = cobalt%jn2o_nit(i,j,k) - cobalt%b_n2o_nit(i,j)/rho_dzt_bot(i,j)
+            cobalt%jn2o_denit_plus_btm(i,j,k) = cobalt%jn2o_denit(i,j,k) - cobalt%b_n2o_denit(i,j)/rho_dzt_bot(i,j)
+            cobalt%jn2o_atm_plus_btm(i,j,k) = cobalt%jn2o_atm(i,j,k) - cobalt%b_n2o_atm(i,j)/rho_dzt_bot(i,j)
+            cobalt%jn2o_sed_plus_btm(i,j,k) = cobalt%jn2o_sed(i,j,k) - cobalt%b_n2o_sed(i,j)/rho_dzt_bot(i,j)
+            endif !}
+          endif !} ! } YZ
         enddo
       endif
     enddo; enddo
@@ -6991,7 +7572,22 @@ contains
     call g_tracer_get_values(tracer_list,'o2','stf_gas',cobalt%stf_gas_o2,isd,jsd)
     call g_tracer_get_values(tracer_list,'dic','deltap',cobalt%deltap_dic,isd,jsd)
     call g_tracer_get_values(tracer_list,'o2','deltap',cobalt%deltap_o2,isd,jsd)
+    ! YZ: N2O_module, 13/06/2025 {
+    if (do_n2o) then !{
+      call g_tracer_get_values(tracer_list,'n2o','stf_gas',cobalt%stf_gas_n2o,isd,jsd)
+      call g_tracer_get_values(tracer_list,'n2o','deltap',cobalt%deltap_n2o,isd,jsd)
+      if (do_n2o_decomp) then !{
+      call g_tracer_get_values(tracer_list,'n2o_nit','stf_gas',cobalt%stf_gas_n2o_nit,isd,jsd)
+      call g_tracer_get_values(tracer_list,'n2o_denit','stf_gas',cobalt%stf_gas_n2o_denit,isd,jsd)
+      call g_tracer_get_values(tracer_list,'n2o_atm','stf_gas',cobalt%stf_gas_n2o_atm,isd,jsd)
+      call g_tracer_get_values(tracer_list,'n2o_sed','stf_gas',cobalt%stf_gas_n2o_sed,isd,jsd)
 
+      call g_tracer_get_values(tracer_list,'n2o_nit','deltap',cobalt%deltap_n2o_nit,isd,jsd)
+      call g_tracer_get_values(tracer_list,'n2o_denit','deltap',cobalt%deltap_n2o_denit,isd,jsd)
+      call g_tracer_get_values(tracer_list,'n2o_atm','deltap',cobalt%deltap_n2o_atm,isd,jsd)
+      call g_tracer_get_values(tracer_list,'n2o_sed','deltap',cobalt%deltap_n2o_sed,isd,jsd)
+      endif !}
+    endif !} ! } YZ
 
 !---------------------------------------------------------------------
 ! Add vertical integrals for diagnostics
@@ -7062,13 +7658,18 @@ contains
     real, dimension(ilb:,jlb:,:), optional, intent(in) :: dzt
     type(time_type),                intent(in) :: model_time
     integer :: isc,iec, jsc,jec,isd,ied,jsd,jed,nk,ntau , i, j
-    real    :: sal,ST,o2_saturation
+    real    :: sal,ST,o2_saturation,n2o_saturation ! YZ: N2O_module, 13/06/2025
     real    :: tt,tk,ts,ts2,ts3,ts4,ts5
+    real    :: log100,tkn,tkn100,tkn1002,logtkn    ! YZ: N2O_module, 13/06/2025
     real, dimension(:,:,:)  ,pointer  :: grid_tmask
     real, dimension(:,:,:,:), pointer :: o2_field,dic_field,po4_field,sio4_field,alk_field,di14c_field,nh4_field
     real, dimension(:,:,:), ALLOCATABLE :: htotal_field,co3_ion_field
     real, dimension(:,:), ALLOCATABLE :: co2_alpha,co2_csurf,co2_sc_no,o2_alpha,o2_csurf,o2_sc_no,nh3_alpha,nh3_csurf,nh3_sc_no,phos_nh3_exchange
     real, dimension(:,:), ALLOCATABLE :: c14o2_alpha,c14o2_csurf
+    real, dimension(:,:,:,:), pointer :: n2o_field,n2o_nit_field,n2o_denit_field,n2o_atm_field,n2o_sed_field ! YZ: N2O_module, 13/06/2025 {
+    real, dimension(:,:), ALLOCATABLE :: n2o_alpha,n2o_nit_alpha,n2o_denit_alpha,n2o_atm_alpha,n2o_sed_alpha 
+    real, dimension(:,:), ALLOCATABLE :: n2o_csurf,n2o_nit_csurf,n2o_denit_csurf,n2o_atm_csurf,n2o_sed_csurf
+    real, dimension(:,:), ALLOCATABLE :: n2o_sc_no,n2o_nit_sc_no,n2o_denit_sc_no,n2o_atm_sc_no,n2o_sed_sc_no ! } YZ
     real :: pka_nh3,tr,ltr
 
     logical :: phos_nh3_override
@@ -7082,6 +7683,16 @@ contains
     call g_tracer_get_common(isc,iec,jsc,jec,isd,ied,jsd,jed,nk,ntau,grid_tmask=grid_tmask)
 
     call g_tracer_get_pointer(tracer_list,'o2' ,'field',  o2_field)
+    ! YZ: N2O_module, 13/06/2025 {
+    if (do_n2o) then !{
+      call g_tracer_get_pointer(tracer_list,'n2o' ,'field',  n2o_field)
+     if (do_n2o_decomp) then !{
+      call g_tracer_get_pointer(tracer_list,'n2o_nit' ,'field',  n2o_nit_field)
+      call g_tracer_get_pointer(tracer_list,'n2o_denit' ,'field',  n2o_denit_field)
+      call g_tracer_get_pointer(tracer_list,'n2o_atm' ,'field',  n2o_atm_field)
+      call g_tracer_get_pointer(tracer_list,'n2o_sed' ,'field',  n2o_sed_field)
+      endif !}
+    endif !} ! } YZ
 
     allocate(co2_alpha(isd:ied, jsd:jed)); co2_alpha=0.0
     allocate(co2_csurf(isd:ied, jsd:jed)); co2_csurf=0.0
@@ -7096,6 +7707,28 @@ contains
     allocate(o2_alpha(isd:ied, jsd:jed)); o2_alpha=0.0
     allocate(o2_csurf(isd:ied, jsd:jed)); o2_csurf=0.0
     allocate(o2_sc_no(isd:ied, jsd:jed)); o2_sc_no=0.0
+    ! YZ: N2O_module, 13/06/2025 {
+    if (do_n2o) then !{
+      allocate(n2o_alpha(isd:ied, jsd:jed)); n2o_alpha=0.0
+      allocate(n2o_csurf(isd:ied, jsd:jed)); n2o_csurf=0.0
+      allocate(n2o_sc_no(isd:ied, jsd:jed)); n2o_sc_no=0.0
+      if (do_n2o_decomp) then !{
+      allocate(n2o_nit_alpha(isd:ied, jsd:jed)); n2o_nit_alpha=0.0
+      allocate(n2o_denit_alpha(isd:ied, jsd:jed)); n2o_denit_alpha=0.0
+      allocate(n2o_atm_alpha(isd:ied, jsd:jed)); n2o_atm_alpha=0.0
+      allocate(n2o_sed_alpha(isd:ied, jsd:jed)); n2o_sed_alpha=0.0
+
+      allocate(n2o_nit_csurf(isd:ied, jsd:jed)); n2o_nit_csurf=0.0
+      allocate(n2o_denit_csurf(isd:ied, jsd:jed)); n2o_denit_csurf=0.0
+      allocate(n2o_atm_csurf(isd:ied, jsd:jed)); n2o_atm_csurf=0.0
+      allocate(n2o_sed_csurf(isd:ied, jsd:jed)); n2o_sed_csurf=0.0
+
+      allocate(n2o_nit_sc_no(isd:ied, jsd:jed)); n2o_nit_sc_no=0.0
+      allocate(n2o_denit_sc_no(isd:ied, jsd:jed)); n2o_denit_sc_no=0.0
+      allocate(n2o_atm_sc_no(isd:ied, jsd:jed)); n2o_atm_sc_no=0.0
+      allocate(n2o_sed_sc_no(isd:ied, jsd:jed)); n2o_sed_sc_no=0.0
+      endif !}
+    endif !} ! } YZ
     allocate(htotal_field(isd:ied,jsd:jed,nk),co3_ion_field(isd:ied,jsd:jed,nk))
     htotal_field=0.0 ; co3_ion_field=0.0
 
@@ -7212,6 +7845,23 @@ contains
     call g_tracer_get_values(tracer_list,'o2','alpha', o2_alpha ,isd,jsd)
     call g_tracer_get_values(tracer_list,'o2','csurf', o2_csurf ,isd,jsd)
 
+    ! YZ: N2O_module, 13/06/2025 {
+    if (do_n2o) then !{
+      call g_tracer_get_values(tracer_list,'n2o','alpha', n2o_alpha ,isd,jsd)
+      call g_tracer_get_values(tracer_list,'n2o','csurf', n2o_csurf ,isd,jsd)
+
+      if (do_n2o_decomp) then !{
+      call g_tracer_get_values(tracer_list,'n2o_nit','alpha', n2o_nit_alpha ,isd,jsd)
+      call g_tracer_get_values(tracer_list,'n2o_denit','alpha', n2o_denit_alpha ,isd,jsd)
+      call g_tracer_get_values(tracer_list,'n2o_atm','alpha', n2o_atm_alpha ,isd,jsd)
+      call g_tracer_get_values(tracer_list,'n2o_sed','alpha', n2o_sed_alpha ,isd,jsd)
+
+      call g_tracer_get_values(tracer_list,'n2o_nit','csurf', n2o_nit_csurf ,isd,jsd)
+      call g_tracer_get_values(tracer_list,'n2o_denit','csurf', n2o_denit_csurf ,isd,jsd)
+      call g_tracer_get_values(tracer_list,'n2o_atm','csurf', n2o_atm_csurf ,isd,jsd)
+      call g_tracer_get_values(tracer_list,'n2o_sed','csurf', n2o_sed_csurf ,isd,jsd)
+      endif !}
+    endif !} ! } YZ
 
     do j=jsc,jec ; do i=isc,iec
        !This calculation needs an input of SST and SSS
@@ -7316,6 +7966,77 @@ contains
        o2_alpha(i,j) = (o2_saturation / 0.21)
        o2_csurf(i,j) = o2_field(i,j,1,tau) * cobalt%Rho_0 !nnz: MOM has rho(i,j,1,tau)
 
+       ! YZ: N2O_module, 13/06/2025 {
+       if (do_n2o) then !{
+       !---------------------------------------------------------------------
+       !	N2O
+       !---------------------------------------------------------------------
+       !  Compute the nitrous oxide  saturation concentration at 1 atm total
+       !  pressure in mol/kg given the temperature (t, in deg C) and
+       !  the salinity (s, in permil)
+       !
+       !  From Weiss and Price (1980), Marine Chemistry.
+       !  The formula used is from page 351, eq (12).
+       !
+       !  n2o_saturation is defined between T(freezing) <= T <= 40 deg C and
+       !                               	0 permil <= S <= 42 permil
+       ! check value: T = 10 deg C, S = 35 permil,
+       !          	n2o_saturation = 0.0330465 mol l-1 atm-1
+       !---------------------------------------------------------------------
+       !
+       log100 = log(100.0)
+       sal = min(42.0,max(0.0,sal))
+       tkn = 273.15 + min(40.0,max(0.0,ST))
+       tkn100 = tkn / 100.0
+       tkn1002 = tkn100  * tkn100
+       logtkn = log(tkn)
+
+       !The atmospheric code needs solubilities in units of mol/m3/atm
+       n2o_saturation = 1000.0 * grid_tmask(i,j,1) *  & !convert from mol/l to mol m-3
+            exp( cobalt%a_1_n2o + cobalt%a_2_n2o/tkn100 + cobalt%a_3_n2o*(logtkn-log100) + &
+            (cobalt%b_1_n2o + cobalt%b_2_n2o*tkn100 + cobalt%b_3_n2o*tkn1002)*sal)
+
+       !---------------------------------------------------------------------
+       !  Compute the Schmidt number of N2O in seawater using the
+       !  formulation presented by Wanninkhof (1992, J. Geophys. Res., 97,
+       !  7373-7382).
+       !  2018/01/17 jgj  update Schmidt number for N2O to use
+       !  Wanninkhof, Limnol. Oceanogr: Methods, 12, 2014, 351-362
+       !---------------------------------------------------------------------
+       !
+       ! In 'ocmip2_generic' atmos_ocean_fluxes.F90 coupler formulation,
+       ! the schmidt number is carried in explicitly
+       !
+       if (trim(as_param_cobalt) == 'W92') then
+         n2o_sc_no(i,j)  = cobalt%a1_n2o + ST * (cobalt%a2_n2o + ST * (cobalt%a3_n2o + ST * cobalt%a4_n2o )) * &
+                           grid_tmask(i,j,1)
+       else if ((trim(as_param_cobalt) == 'W14') .or. (trim(as_param_cobalt) == 'gfdl_cmip6')) then
+         n2o_sc_no(i,j) = cobalt%a1_n2o + ST*(cobalt%a2_n2o + ST*(cobalt%a3_n2o + &
+                          ST*(cobalt%a4_n2o + ST*cobalt%a5_n2o))) * grid_tmask(i,j,1)
+       endif
+
+       ! in mol/m3
+       n2o_alpha(i,j) = n2o_saturation  !nnz: MOM has rho(i,j,1,tau)
+       n2o_csurf(i,j) = n2o_field(i,j,1,tau) * cobalt%Rho_0  !nnz: MOM has rho(i,j,1,tau)
+
+       if (do_n2o_decomp) then !{
+       n2o_nit_sc_no(i,j) = n2o_sc_no(i,j)
+       n2o_denit_sc_no(i,j) = n2o_sc_no(i,j)
+       n2o_atm_sc_no(i,j) = n2o_sc_no(i,j)
+       n2o_sed_sc_no(i,j) = n2o_sc_no(i,j)
+
+       n2o_nit_alpha(i,j) = n2o_saturation   !nnz: MOM has rho(i,j,1,tau)
+       n2o_denit_alpha(i,j) = n2o_saturation !nnz: MOM has rho(i,j,1,tau)
+       n2o_atm_alpha(i,j) = n2o_saturation   !nnz: MOM has rho(i,j,1,tau)
+       n2o_sed_alpha(i,j) = n2o_saturation   !nnz: MOM has rho(i,j,1,tau)
+      
+       n2o_nit_csurf(i,j) = n2o_nit_field(i,j,1,tau) * cobalt%Rho_0  !nnz: MOM has rho(i,j,1,tau)
+       n2o_denit_csurf(i,j) = n2o_denit_field(i,j,1,tau) * cobalt%Rho_0  !nnz: MOM has rho(i,j,1,tau)
+       n2o_atm_csurf(i,j) = n2o_atm_field(i,j,1,tau) * cobalt%Rho_0  !nnz: MOM has rho(i,j,1,tau)
+       n2o_sed_csurf(i,j) = n2o_sed_field(i,j,1,tau) * cobalt%Rho_0  !nnz: MOM has rho(i,j,1,tau)
+       endif !}
+     endif !} ! } YZ
+
     enddo; enddo
 
     !
@@ -7329,6 +8050,30 @@ contains
     call g_tracer_set_values(tracer_list,'o2', 'alpha',o2_alpha, isd,jsd)
     call g_tracer_set_values(tracer_list,'o2', 'csurf',o2_csurf, isd,jsd)
     call g_tracer_set_values(tracer_list,'o2', 'sc_no',o2_sc_no, isd,jsd)
+
+    ! YZ: N2O_module, 13/06/2025 {
+    if (do_n2o) then !{
+      call g_tracer_set_values(tracer_list,'n2o', 'alpha',n2o_alpha, isd,jsd)
+      call g_tracer_set_values(tracer_list,'n2o', 'csurf',n2o_csurf, isd,jsd)
+      call g_tracer_set_values(tracer_list,'n2o', 'sc_no',n2o_sc_no, isd,jsd)
+      
+      if (do_n2o_decomp) then !{
+      call g_tracer_set_values(tracer_list,'n2o_nit', 'alpha',n2o_nit_alpha, isd,jsd)
+      call g_tracer_set_values(tracer_list,'n2o_denit', 'alpha',n2o_denit_alpha, isd,jsd)
+      call g_tracer_set_values(tracer_list,'n2o_atm', 'alpha',n2o_atm_alpha, isd,jsd)
+      call g_tracer_set_values(tracer_list,'n2o_sed', 'alpha',n2o_sed_alpha, isd,jsd)
+
+      call g_tracer_set_values(tracer_list,'n2o_nit',  'csurf',n2o_nit_csurf, isd,jsd)
+      call g_tracer_set_values(tracer_list,'n2o_denit','csurf',n2o_denit_csurf, isd,jsd)
+      call g_tracer_set_values(tracer_list,'n2o_atm',  'csurf',n2o_atm_csurf, isd,jsd)
+      call g_tracer_set_values(tracer_list,'n2o_sed',  'csurf',n2o_sed_csurf, isd,jsd)
+
+      call g_tracer_set_values(tracer_list,'n2o_nit', 'sc_no',n2o_nit_sc_no, isd,jsd)
+      call g_tracer_set_values(tracer_list,'n2o_denit', 'sc_no',n2o_denit_sc_no, isd,jsd)
+      call g_tracer_set_values(tracer_list,'n2o_atm', 'sc_no',n2o_atm_sc_no, isd,jsd)
+      call g_tracer_set_values(tracer_list,'n2o_sed', 'sc_no',n2o_sed_sc_no, isd,jsd)
+      endif !}
+    endif !} ! } YZ
 
     if (do_nh3_atm_ocean_exchange) then
        call g_tracer_get_values(tracer_list,'nh4','alpha', nh3_alpha ,isd,jsd)
@@ -7380,6 +8125,16 @@ contains
          c14o2_alpha,c14o2_csurf,     &
          o2_csurf,o2_sc_no, nh3_alpha,nh3_csurf,&
          nh3_sc_no,phos_nh3_exchange)
+    ! YZ: N2O_module, 13/06/2025 {
+    if (do_n2o) then !{
+       deallocate(n2o_alpha,n2o_csurf,n2o_sc_no)
+       if (do_n2o_decomp) then !{
+          deallocate(n2o_nit_alpha,n2o_nit_csurf,n2o_nit_sc_no,&
+             n2o_denit_alpha,n2o_denit_csurf,n2o_denit_sc_no,&
+             n2o_atm_alpha,n2o_atm_csurf,n2o_atm_sc_no,&
+             n2o_sed_alpha,n2o_sed_csurf,n2o_sed_sc_no)
+       endif !}
+    endif !} ! } YZ
 
   end subroutine generic_COBALT_set_boundary_values
 
@@ -8002,6 +8757,78 @@ contains
       allocate(cobalt%runoff_flux_srdop(isd:ied, jsd:jed));    cobalt%runoff_flux_srdop=0.0
    endif !} ! } YZ
 
+   ! YZ: N2O_module, 13/06/2025 {
+   if (do_n2o) then !{
+      allocate(cobalt%f_n2o(isd:ied, jsd:jed, 1:nk));          cobalt%f_n2o=0.0
+      allocate(cobalt%jn2o(isd:ied, jsd:jed, 1:nk));           cobalt%jn2o=0.0
+      allocate(cobalt%jn2o_plus_btm(isd:ied, jsd:jed, 1:nk));  cobalt%jn2o_plus_btm=0.0
+      allocate(cobalt%jprod_n2o_nit(isd:ied, jsd:jed, 1:nk));  cobalt%jprod_n2o_nit=0.0
+      allocate(cobalt%jprod_n2o_denit(isd:ied, jsd:jed, 1:nk));cobalt%jprod_n2o_denit=0.0
+      allocate(cobalt%jsink_n2o(isd:ied, jsd:jed, 1:nk));      cobalt%jsink_n2o=0.0
+      allocate(cobalt%jremin_ndet_denit1(isd:ied, jsd:jed, 1:nk))  ; cobalt%jremin_ndet_denit1=0.0
+      allocate(cobalt%jremin_ndet_denit2(isd:ied, jsd:jed, 1:nk))  ; cobalt%jremin_ndet_denit2=0.0
+      allocate(cobalt%jremin_ndet_denit0(isd:ied, jsd:jed, 1:nk))  ; cobalt%jremin_ndet_denit0=0.0
+      allocate(cobalt%tot_layer_int_n2o(isd:ied, jsd:jed, 1:nk))   ; cobalt%tot_layer_int_n2o=0.0
+      allocate(cobalt%b_n2o(isd:ied, jsd:jed));                cobalt%b_n2o=0.0
+      allocate(cobalt%btm_n2o(isd:ied,jsd:jed));               cobalt%btm_n2o = 0.0
+      allocate(cobalt%n2osat(isd:ied, jsd:jed, 1:nk));         cobalt%n2osat=0.0
+      allocate(cobalt%n2o_csurf(isd:ied, jsd:jed));            cobalt%n2o_csurf=0.0
+      allocate(cobalt%n2o_alpha(isd:ied, jsd:jed));            cobalt%n2o_alpha=0.0
+      allocate(cobalt%wc_vert_int_n2o(isd:ied, jsd:jed));      cobalt%wc_vert_int_n2o=0.0
+      allocate(cobalt%wc_vert_int_jprod_n2o_nit(isd:ied, jsd:jed));cobalt%wc_vert_int_jprod_n2o_nit=0.0
+      allocate(cobalt%wc_vert_int_jprod_n2o_denit(isd:ied, jsd:jed));cobalt%wc_vert_int_jprod_n2o_denit=0.0
+      allocate(cobalt%wc_vert_int_jsink_n2o(isd:ied, jsd:jed));cobalt%wc_vert_int_jsink_n2o=0.0
+      allocate(cobalt%stf_gas_n2o(isd:ied, jsd:jed));          cobalt%stf_gas_n2o=0.0
+      allocate(cobalt%deltap_n2o(isd:ied, jsd:jed));           cobalt%deltap_n2o=0.0
+      
+      if (do_n2o_decomp) then !{
+      allocate(cobalt%f_n2o_nit(isd:ied, jsd:jed, 1:nk));      cobalt%f_n2o_nit=0.0
+      allocate(cobalt%f_n2o_denit(isd:ied, jsd:jed, 1:nk));    cobalt%f_n2o_denit=0.0
+      allocate(cobalt%f_n2o_atm(isd:ied, jsd:jed, 1:nk));      cobalt%f_n2o_atm=0.0
+      allocate(cobalt%f_n2o_sed(isd:ied, jsd:jed, 1:nk));      cobalt%f_n2o_sed=0.0
+      allocate(cobalt%jn2o_nit(isd:ied, jsd:jed, 1:nk));       cobalt%jn2o_nit=0.0
+      allocate(cobalt%jn2o_denit(isd:ied, jsd:jed, 1:nk));     cobalt%jn2o_denit=0.0
+      allocate(cobalt%jn2o_atm(isd:ied, jsd:jed, 1:nk));       cobalt%jn2o_atm=0.0
+      allocate(cobalt%jn2o_sed(isd:ied, jsd:jed, 1:nk));       cobalt%jn2o_sed=0.0
+      allocate(cobalt%jn2o_nit_plus_btm(isd:ied, jsd:jed, 1:nk));       cobalt%jn2o_nit_plus_btm=0.0
+      allocate(cobalt%jn2o_denit_plus_btm(isd:ied, jsd:jed, 1:nk));     cobalt%jn2o_denit_plus_btm=0.0
+      allocate(cobalt%jn2o_atm_plus_btm(isd:ied, jsd:jed, 1:nk));       cobalt%jn2o_atm_plus_btm=0.0
+      allocate(cobalt%jn2o_sed_plus_btm(isd:ied, jsd:jed, 1:nk));       cobalt%jn2o_sed_plus_btm=0.0
+      allocate(cobalt%jsink_n2o_nit(isd:ied, jsd:jed, 1:nk));  cobalt%jsink_n2o_nit=0.0
+      allocate(cobalt%jsink_n2o_denit(isd:ied, jsd:jed, 1:nk));cobalt%jsink_n2o_denit=0.0
+      allocate(cobalt%jsink_n2o_atm(isd:ied, jsd:jed, 1:nk));  cobalt%jsink_n2o_atm=0.0
+      allocate(cobalt%jsink_n2o_sed(isd:ied, jsd:jed, 1:nk));  cobalt%jsink_n2o_sed=0.0
+      allocate(cobalt%tot_layer_int_n2o_nit(isd:ied, jsd:jed, 1:nk));   cobalt%tot_layer_int_n2o_nit=0.0
+      allocate(cobalt%tot_layer_int_n2o_denit(isd:ied, jsd:jed, 1:nk)); cobalt%tot_layer_int_n2o_denit=0.0
+      allocate(cobalt%tot_layer_int_n2o_atm(isd:ied, jsd:jed, 1:nk));   cobalt%tot_layer_int_n2o_atm=0.0
+      allocate(cobalt%tot_layer_int_n2o_sed(isd:ied, jsd:jed, 1:nk));   cobalt%tot_layer_int_n2o_sed=0.0
+      allocate(cobalt%b_n2o_nit(isd:ied, jsd:jed));            cobalt%b_n2o_nit=0.0
+      allocate(cobalt%b_n2o_denit(isd:ied, jsd:jed));          cobalt%b_n2o_denit=0.0
+      allocate(cobalt%b_n2o_atm(isd:ied, jsd:jed));            cobalt%b_n2o_atm=0.0
+      allocate(cobalt%b_n2o_sed(isd:ied, jsd:jed));            cobalt%b_n2o_sed=0.0
+      allocate(cobalt%btm_n2o_nit(isd:ied,jsd:jed));           cobalt%btm_n2o_nit = 0.0
+      allocate(cobalt%btm_n2o_denit(isd:ied,jsd:jed));         cobalt%btm_n2o_denit = 0.0
+      allocate(cobalt%btm_n2o_atm(isd:ied,jsd:jed));           cobalt%btm_n2o_atm = 0.0
+      allocate(cobalt%btm_n2o_sed(isd:ied,jsd:jed));           cobalt%btm_n2o_sed = 0.0
+      allocate(cobalt%wc_vert_int_n2o_nit(isd:ied, jsd:jed));  cobalt%wc_vert_int_n2o_nit=0.0
+      allocate(cobalt%wc_vert_int_n2o_denit(isd:ied, jsd:jed));cobalt%wc_vert_int_n2o_denit=0.0
+      allocate(cobalt%wc_vert_int_n2o_atm(isd:ied, jsd:jed));  cobalt%wc_vert_int_n2o_atm=0.0
+      allocate(cobalt%wc_vert_int_n2o_sed(isd:ied, jsd:jed));  cobalt%wc_vert_int_n2o_sed=0.0
+      allocate(cobalt%wc_vert_int_jsink_n2o_nit(isd:ied, jsd:jed));     cobalt%wc_vert_int_jsink_n2o_nit=0.0
+      allocate(cobalt%wc_vert_int_jsink_n2o_denit(isd:ied, jsd:jed));   cobalt%wc_vert_int_jsink_n2o_denit=0.0
+      allocate(cobalt%wc_vert_int_jsink_n2o_atm(isd:ied, jsd:jed));     cobalt%wc_vert_int_jsink_n2o_atm=0.0
+      allocate(cobalt%wc_vert_int_jsink_n2o_sed(isd:ied, jsd:jed));     cobalt%wc_vert_int_jsink_n2o_sed=0.0
+      allocate(cobalt%stf_gas_n2o_nit(isd:ied, jsd:jed));      cobalt%stf_gas_n2o_nit=0.0
+      allocate(cobalt%stf_gas_n2o_denit(isd:ied, jsd:jed));    cobalt%stf_gas_n2o_denit=0.0
+      allocate(cobalt%stf_gas_n2o_atm(isd:ied, jsd:jed));      cobalt%stf_gas_n2o_atm=0.0
+      allocate(cobalt%stf_gas_n2o_sed(isd:ied, jsd:jed));      cobalt%stf_gas_n2o_sed=0.0
+      allocate(cobalt%deltap_n2o_nit(isd:ied, jsd:jed));       cobalt%deltap_n2o_nit=0.0
+      allocate(cobalt%deltap_n2o_denit(isd:ied, jsd:jed));     cobalt%deltap_n2o_denit=0.0
+      allocate(cobalt%deltap_n2o_atm(isd:ied, jsd:jed));       cobalt%deltap_n2o_atm=0.0
+      allocate(cobalt%deltap_n2o_sed(isd:ied, jsd:jed));       cobalt%deltap_n2o_sed=0.0
+      endif !}
+   endif !} ! } YZ
+
   end subroutine user_allocate_arrays
 
   !
@@ -8573,6 +9400,78 @@ contains
       deallocate(cobalt%runoff_flux_pdet)
       deallocate(cobalt%runoff_flux_ldop)
       deallocate(cobalt%runoff_flux_srdop)
+   endif !} ! } YZ
+
+   ! YZ: N2O_module, 13/06/2025 {
+   if (do_n2o) then !{
+      deallocate(cobalt%f_n2o)
+      deallocate(cobalt%jn2o)
+      deallocate(cobalt%jn2o_plus_btm)
+      deallocate(cobalt%jprod_n2o_nit)
+      deallocate(cobalt%jprod_n2o_denit)
+      deallocate(cobalt%jsink_n2o)
+      deallocate(cobalt%jremin_ndet_denit1)
+      deallocate(cobalt%jremin_ndet_denit2)
+      deallocate(cobalt%jremin_ndet_denit0)
+      deallocate(cobalt%tot_layer_int_n2o)
+      deallocate(cobalt%b_n2o)
+      deallocate(cobalt%btm_n2o)
+      deallocate(cobalt%n2osat)
+      deallocate(cobalt%n2o_alpha)
+      deallocate(cobalt%n2o_csurf)
+      deallocate(cobalt%wc_vert_int_n2o)
+      deallocate(cobalt%wc_vert_int_jprod_n2o_nit)
+      deallocate(cobalt%wc_vert_int_jprod_n2o_denit)
+      deallocate(cobalt%wc_vert_int_jsink_n2o)
+      deallocate(cobalt%stf_gas_n2o)
+      deallocate(cobalt%deltap_n2o)
+
+      if (do_n2o_decomp) then !{
+      deallocate(cobalt%f_n2o_nit)
+      deallocate(cobalt%f_n2o_denit)
+      deallocate(cobalt%f_n2o_atm)
+      deallocate(cobalt%f_n2o_sed)
+      deallocate(cobalt%jn2o_nit)
+      deallocate(cobalt%jn2o_denit)
+      deallocate(cobalt%jn2o_atm)
+      deallocate(cobalt%jn2o_sed)
+      deallocate(cobalt%jn2o_nit_plus_btm)
+      deallocate(cobalt%jn2o_denit_plus_btm)
+      deallocate(cobalt%jn2o_atm_plus_btm)
+      deallocate(cobalt%jn2o_sed_plus_btm)
+      deallocate(cobalt%jsink_n2o_nit)
+      deallocate(cobalt%jsink_n2o_denit)
+      deallocate(cobalt%jsink_n2o_atm)
+      deallocate(cobalt%jsink_n2o_sed)
+      deallocate(cobalt%tot_layer_int_n2o_nit)
+      deallocate(cobalt%tot_layer_int_n2o_denit)
+      deallocate(cobalt%tot_layer_int_n2o_atm)
+      deallocate(cobalt%tot_layer_int_n2o_sed)
+      deallocate(cobalt%b_n2o_nit)
+      deallocate(cobalt%b_n2o_denit)
+      deallocate(cobalt%b_n2o_atm)
+      deallocate(cobalt%b_n2o_sed)
+      deallocate(cobalt%btm_n2o_nit)
+      deallocate(cobalt%btm_n2o_denit)
+      deallocate(cobalt%btm_n2o_atm)
+      deallocate(cobalt%btm_n2o_sed)
+      deallocate(cobalt%wc_vert_int_n2o_nit)
+      deallocate(cobalt%wc_vert_int_n2o_denit)
+      deallocate(cobalt%wc_vert_int_n2o_atm)
+      deallocate(cobalt%wc_vert_int_n2o_sed)
+      deallocate(cobalt%wc_vert_int_jsink_n2o_nit)
+      deallocate(cobalt%wc_vert_int_jsink_n2o_denit)
+      deallocate(cobalt%wc_vert_int_jsink_n2o_atm)
+      deallocate(cobalt%wc_vert_int_jsink_n2o_sed)
+      deallocate(cobalt%stf_gas_n2o_nit)
+      deallocate(cobalt%stf_gas_n2o_denit)
+      deallocate(cobalt%stf_gas_n2o_atm)
+      deallocate(cobalt%stf_gas_n2o_sed)
+      deallocate(cobalt%deltap_n2o_nit)
+      deallocate(cobalt%deltap_n2o_denit)
+      deallocate(cobalt%deltap_n2o_atm)
+      deallocate(cobalt%deltap_n2o_sed)
+      endif !}
    endif !} ! } YZ
 
   end subroutine user_deallocate_arrays
