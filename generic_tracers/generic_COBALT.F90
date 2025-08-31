@@ -1095,10 +1095,10 @@ contains
     !
     call get_param(param_file, "generic_COBALT", "frac_mu_stress_Sm", phyto(SMALL)%frac_mu_stress, &
                    "fraction of max growth when stress-dependent losses initiate for small phytoplankton", &
-         units="none", default=0.4)
+                   units="none", default=0.4)
     call get_param(param_file, "generic_COBALT", "frac_mu_stress_Di", phyto(DIAZO)%frac_mu_stress, &
-                  "fraction of max growth when stress-dependent losses initiate for diazotrophs", &
-                  units="none", default=0.4)
+                   "fraction of max growth when stress-dependent losses initiate for diazotrophs", &
+                   units="none", default=0.4)
     call get_param(param_file, "generic_COBALT", "frac_mu_stress_Lg", phyto(LARGE)%frac_mu_stress, &
                    "fraction of max growth when stress-dependent losses initiate for large phytoplankton", &
                    units="none", default=0.4)
@@ -5322,8 +5322,8 @@ contains
           cobalt%jprod_nh4(i,j,k) = cobalt%jprod_nh4(i,j,k) + cobalt%jremin_ndet_denit0(i,j,k) + &
                cobalt%jremin_ndet_denit2(i,j,k) - cobalt%jremin_ndet_amx(i,j,k)
           ! Augment total oxygen consumption for implicitly represented nitrite oxidation to nitrate
-          cobalt%jo2resp_wc(i,j,k) = cobalt%jo2resp_wc(i,j,k) + (cobalt%jremin_ndet_denit0(i,j,k) - &
-               cobalt%jremin_ndet_denit1(i,j,k) - cobalt%jremin_ndet_amx(i,j,k)) * cobalt%o2_2_nh4
+          ! cobalt%jo2resp_wc(i,j,k) = cobalt%jo2resp_wc(i,j,k) + (cobalt%jremin_ndet_denit0(i,j,k) - &
+          !     cobalt%jremin_ndet_denit1(i,j,k) - cobalt%jremin_ndet_amx(i,j,k)) * cobalt%o2_2_nh4
           ! Augment total ndet consumption
           cobalt%jremin_ndet(i,j,k) = cobalt%jremin_ndet(i,j,k) + cobalt%jremin_ndet_denit0(i,j,k) + &
                cobalt%jremin_ndet_denit2(i,j,k) - cobalt%jremin_ndet_amx(i,j,k)
@@ -5748,6 +5748,17 @@ contains
              ! The thickness of the bottom boundary layer (cobalt%bottom_thickness) impacts this upper bound.
              ! Efforts are underway to implement a more dynamic bottom boundary layer scheme.
              !
+             ! YZ: N2O_module, 01/08/2025 {
+             if (do_n2o) then !{
+             if (cobalt%btm_o2(i,j) .gt. cobalt%o2_min_nit) then  !{
+                cobalt%fnoxic_sed(i,j) = max(0.0, min(cobalt%btm_o2(i,j)*cobalt%bottom_thickness* &
+                                         cobalt%Rho_0*r_dt*(1.0/cobalt%o2_2_nh4), &
+                                         cobalt%fntot_btm(i,j) - cobalt%fn_burial(i,j) - &
+                                         cobalt%fno3denit_sed(i,j)/cobalt%n_2_n_denit))
+             else
+                cobalt%fnoxic_sed(i,j) = 0.0
+             endif !}
+             else
              if (cobalt%btm_o2(i,j) .gt. cobalt%o2_min) then  !{
                 cobalt%fnoxic_sed(i,j) = max(0.0, min(cobalt%btm_o2(i,j)*cobalt%bottom_thickness* &
                                          cobalt%Rho_0*r_dt*(1.0/cobalt%o2_2_nh4), &
@@ -5756,6 +5767,7 @@ contains
              else
                 cobalt%fnoxic_sed(i,j) = 0.0
              endif !}
+             endif !} ! } YZ
              cobalt%fnso4red_sed(i,j) = max(0.0, cobalt%fntot_btm(i,j)-cobalt%fnoxic_sed(i,j)- &
                                           cobalt%fn_burial(i,j)-cobalt%fno3denit_sed(i,j)/cobalt%n_2_n_denit)
           else
@@ -5818,15 +5830,15 @@ contains
           !
           ! phi_surfresp_cased = 0.14307   ! const for enhanced diss., surf sed respiration (dimensionless)
           ! phi_deepresp_cased = 4.1228    ! const for enhanced diss., deep sed respiration (dimensionless)
-          ! alpha_cased = 2.7488 ! exponent controlling non-linearity of deep dissolution
-          ! beta_cased = -2.2185 ! exponent controlling non-linearity of effective thickness
-          ! gamma_cased = 0.03607/spery   ! dissolution rate constant
-          ! Co_cased = 8.1e3        ! moles CaCo3 m-3 for pure calcite sediment with porosity = 0.7
+          ! alpha_cased = 2.7488           ! exponent controlling non-linearity of deep dissolution
+          ! beta_cased = -2.2185           ! exponent controlling non-linearity of effective thickness
+          ! gamma_cased = 0.03607/spery    ! dissolution rate constant
+          ! Co_cased = 8.1e3               ! moles CaCo3 m-3 for pure calcite sediment with porosity = 0.7
           !
           ! if cased_steady is true, burial is calculated from Dunne's eq. (2) assuming dcased/dt = 0.
           ! This ensures that all the calcite bottom flux is partitioned between burial and redissolution.
           ! The steady state cased value of cased is calculated to reflect the changing bottom conditions.
-          ! This influences the the partitioning of burial and redissolution over time, but there are
+          ! This influences the partitioning of burial and redissolution over time, but there are
           ! no alkalinity changes/drifts associated with the long-term evolution of cased
           !
           ! If cased_steady is false, calcite is partitioned between dissolution, burial and evolving
