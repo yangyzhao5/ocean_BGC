@@ -6970,6 +6970,7 @@ contains
        ! YZ: N2O_module, 13/06/2025 {
        if (do_n2o) then !{
           cobalt%wc_vert_int_n2o(i,j) = 0.0
+          cobalt%wc_vert_int_jn2o(i,j) = 0.0
           cobalt%wc_vert_int_jprod_n2o_nit(i,j) = 0.0
           cobalt%wc_vert_int_jprod_n2o_denit(i,j) = 0.0   
           cobalt%wc_vert_int_jsink_n2o(i,j) = 0.0   
@@ -6978,6 +6979,10 @@ contains
           cobalt%wc_vert_int_n2o_denit(i,j) = 0.0
           cobalt%wc_vert_int_n2o_atm(i,j) = 0.0
           cobalt%wc_vert_int_n2o_sed(i,j) = 0.0
+          cobalt%wc_vert_int_jn2o_nit(i,j) = 0.0
+          cobalt%wc_vert_int_jn2o_denit(i,j) = 0.0
+          cobalt%wc_vert_int_jn2o_atm(i,j) = 0.0
+          cobalt%wc_vert_int_jn2o_sed(i,j) = 0.0
           cobalt%wc_vert_int_jsink_n2o_nit(i,j) = 0.0
           cobalt%wc_vert_int_jsink_n2o_denit(i,j) = 0.0
           cobalt%wc_vert_int_jsink_n2o_atm(i,j) = 0.0
@@ -7051,6 +7056,8 @@ contains
 
           ! YZ: N2O_module, 13/06/2025 {
           if (do_n2o) then !{
+             cobalt%wc_vert_int_jn2o(i,j) = cobalt%wc_vert_int_jn2o(i,j) + &
+                cobalt%jn2o(i,j,k)*rho_dzt(i,j,k) * grid_tmask(i,j,k)
              cobalt%wc_vert_int_jprod_n2o_nit(i,j) = cobalt%wc_vert_int_jprod_n2o_nit(i,j) + &
                 cobalt%jprod_n2o_nit(i,j,k)*rho_dzt(i,j,k) * grid_tmask(i,j,k)
              cobalt%wc_vert_int_jprod_n2o_denit(i,j) = cobalt%wc_vert_int_jprod_n2o_denit(i,j) + &
@@ -7058,6 +7065,14 @@ contains
              cobalt%wc_vert_int_jsink_n2o(i,j) = cobalt%wc_vert_int_jsink_n2o(i,j) + &
                 cobalt%jsink_n2o(i,j,k)*rho_dzt(i,j,k) * grid_tmask(i,j,k)
              if (do_n2o_decomp) then !{
+             cobalt%wc_vert_int_jn2o_nit(i,j) = cobalt%wc_vert_int_jn2o_nit(i,j) + &
+                cobalt%jn2o_nit(i,j,k)*rho_dzt(i,j,k) * grid_tmask(i,j,k)
+             cobalt%wc_vert_int_jn2o_denit(i,j) = cobalt%wc_vert_int_jn2o_denit(i,j) + &
+                cobalt%jn2o_denit(i,j,k)*rho_dzt(i,j,k) * grid_tmask(i,j,k)
+             cobalt%wc_vert_int_jn2o_atm(i,j) = cobalt%wc_vert_int_jn2o_atm(i,j) + &
+                cobalt%jn2o_atm(i,j,k)*rho_dzt(i,j,k) * grid_tmask(i,j,k)
+             cobalt%wc_vert_int_jn2o_sed(i,j) = cobalt%wc_vert_int_jn2o_sed(i,j) + &
+                cobalt%jn2o_sed(i,j,k)*rho_dzt(i,j,k) * grid_tmask(i,j,k)
              cobalt%wc_vert_int_jsink_n2o_nit(i,j) = cobalt%wc_vert_int_jsink_n2o_nit(i,j) + &
                 cobalt%jsink_n2o_nit(i,j,k)*rho_dzt(i,j,k) * grid_tmask(i,j,k)
              cobalt%wc_vert_int_jsink_n2o_denit(i,j) = cobalt%wc_vert_int_jsink_n2o_denit(i,j) + &
@@ -8787,6 +8802,7 @@ contains
       allocate(cobalt%n2o_csurf(isd:ied, jsd:jed));            cobalt%n2o_csurf=0.0
       allocate(cobalt%n2o_alpha(isd:ied, jsd:jed));            cobalt%n2o_alpha=0.0
       allocate(cobalt%wc_vert_int_n2o(isd:ied, jsd:jed));      cobalt%wc_vert_int_n2o=0.0
+      allocate(cobalt%wc_vert_int_jn2o(isd:ied, jsd:jed));     cobalt%wc_vert_int_jn2o=0.0
       allocate(cobalt%wc_vert_int_jprod_n2o_nit(isd:ied, jsd:jed));cobalt%wc_vert_int_jprod_n2o_nit=0.0
       allocate(cobalt%wc_vert_int_jprod_n2o_denit(isd:ied, jsd:jed));cobalt%wc_vert_int_jprod_n2o_denit=0.0
       allocate(cobalt%wc_vert_int_jsink_n2o(isd:ied, jsd:jed));cobalt%wc_vert_int_jsink_n2o=0.0
@@ -8826,6 +8842,10 @@ contains
       allocate(cobalt%wc_vert_int_n2o_denit(isd:ied, jsd:jed));cobalt%wc_vert_int_n2o_denit=0.0
       allocate(cobalt%wc_vert_int_n2o_atm(isd:ied, jsd:jed));  cobalt%wc_vert_int_n2o_atm=0.0
       allocate(cobalt%wc_vert_int_n2o_sed(isd:ied, jsd:jed));  cobalt%wc_vert_int_n2o_sed=0.0
+      allocate(cobalt%wc_vert_int_jn2o_nit(isd:ied, jsd:jed));  cobalt%wc_vert_int_jn2o_nit=0.0
+      allocate(cobalt%wc_vert_int_jn2o_denit(isd:ied, jsd:jed));cobalt%wc_vert_int_jn2o_denit=0.0
+      allocate(cobalt%wc_vert_int_jn2o_atm(isd:ied, jsd:jed));  cobalt%wc_vert_int_jn2o_atm=0.0
+      allocate(cobalt%wc_vert_int_jn2o_sed(isd:ied, jsd:jed));  cobalt%wc_vert_int_jn2o_sed=0.0
       allocate(cobalt%wc_vert_int_jsink_n2o_nit(isd:ied, jsd:jed));     cobalt%wc_vert_int_jsink_n2o_nit=0.0
       allocate(cobalt%wc_vert_int_jsink_n2o_denit(isd:ied, jsd:jed));   cobalt%wc_vert_int_jsink_n2o_denit=0.0
       allocate(cobalt%wc_vert_int_jsink_n2o_atm(isd:ied, jsd:jed));     cobalt%wc_vert_int_jsink_n2o_atm=0.0
@@ -9432,6 +9452,7 @@ contains
       deallocate(cobalt%n2o_alpha)
       deallocate(cobalt%n2o_csurf)
       deallocate(cobalt%wc_vert_int_n2o)
+      deallocate(cobalt%wc_vert_int_jn2o)
       deallocate(cobalt%wc_vert_int_jprod_n2o_nit)
       deallocate(cobalt%wc_vert_int_jprod_n2o_denit)
       deallocate(cobalt%wc_vert_int_jsink_n2o)
@@ -9471,6 +9492,10 @@ contains
       deallocate(cobalt%wc_vert_int_n2o_denit)
       deallocate(cobalt%wc_vert_int_n2o_atm)
       deallocate(cobalt%wc_vert_int_n2o_sed)
+      deallocate(cobalt%wc_vert_int_jn2o_nit)
+      deallocate(cobalt%wc_vert_int_jn2o_denit)
+      deallocate(cobalt%wc_vert_int_jn2o_atm)
+      deallocate(cobalt%wc_vert_int_jn2o_sed)
       deallocate(cobalt%wc_vert_int_jsink_n2o_nit)
       deallocate(cobalt%wc_vert_int_jsink_n2o_denit)
       deallocate(cobalt%wc_vert_int_jsink_n2o_atm)

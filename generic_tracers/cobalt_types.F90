@@ -974,6 +974,11 @@ module cobalt_types
           wc_vert_int_n2o_denit,&
           wc_vert_int_n2o_atm,&
           wc_vert_int_n2o_sed,&
+          wc_vert_int_jn2o,&
+          wc_vert_int_jn2o_nit,&
+          wc_vert_int_jn2o_denit,&
+          wc_vert_int_jn2o_atm,&
+          wc_vert_int_jn2o_sed,&
           wc_vert_int_jprod_n2o_nit,&
           wc_vert_int_jprod_n2o_denit,&
           wc_vert_int_jsink_n2o,&
@@ -1440,6 +1445,11 @@ module cobalt_types
           id_wc_vert_int_n2o_denit      = -1, &
           id_wc_vert_int_n2o_atm        = -1, &
           id_wc_vert_int_n2o_sed        = -1, &
+          id_wc_vert_int_jn2o           = -1, &
+          id_wc_vert_int_jn2o_nit       = -1, &
+          id_wc_vert_int_jn2o_denit     = -1, &
+          id_wc_vert_int_jn2o_atm       = -1, &
+          id_wc_vert_int_jn2o_sed       = -1, &
           id_wc_vert_int_jprod_n2o_nit  = -1, &
           id_wc_vert_int_jprod_n2o_denit= -1, &
           id_wc_vert_int_jsink_n2o      = -1, &

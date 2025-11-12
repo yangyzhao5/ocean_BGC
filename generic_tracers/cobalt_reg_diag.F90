@@ -3212,6 +3212,26 @@ module COBALT_reg_diag
          init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
 
     ! YZ: N2O_module, 13/06/2025
+    vardesc_temp = vardesc("wc_vert_int_jn2o"," Water column N2O net production, vertical integral",&
+                           'h','1','s','mol N2O m-2 s-1','f')
+    cobalt%id_wc_vert_int_jn2o = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+    vardesc_temp = vardesc("wc_vert_int_jn2o_nit"," Water column N2O net production from nitrification, vertical integral",&
+                           'h','1','s','mol N2O m-2 s-1','f')
+    cobalt%id_wc_vert_int_jn2o_nit = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+    vardesc_temp = vardesc("wc_vert_int_jn2o_denit"," Water column N2O net production from denitrification, vertical integral",&
+                           'h','1','s','mol N2O m-2 s-1','f')
+    cobalt%id_wc_vert_int_jn2o_denit = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+    vardesc_temp = vardesc("wc_vert_int_jn2o_atm"," Water column N2O net production from the atmosphere, vertical integral",&
+                           'h','1','s','mol N2O m-2 s-1','f')
+    cobalt%id_wc_vert_int_jn2o_atm = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+    vardesc_temp = vardesc("wc_vert_int_jn2o_sed"," Water column N2O net production from sediments, vertical integral",&
+                           'h','1','s','mol N2O m-2 s-1','f')
+    cobalt%id_wc_vert_int_jn2o_sed = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
     vardesc_temp = vardesc("wc_vert_int_jprod_n2o_nit"," Water column N2O production from nitrification, vertical integral",&
                            'h','1','s','mol N2O m-2 s-1','f')
     cobalt%id_wc_vert_int_jprod_n2o_nit = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&

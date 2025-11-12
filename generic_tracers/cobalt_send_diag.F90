@@ -2205,6 +2205,8 @@ module COBALT_send_diag
             model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
           ! YZ: N2O_module, 13/06/2025 {
           if (do_n2o) then !{
+            used = g_send_data(cobalt%id_wc_vert_int_jn2o, cobalt%wc_vert_int_jn2o, &
+              model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
             used = g_send_data(cobalt%id_wc_vert_int_jprod_n2o_nit, cobalt%wc_vert_int_jprod_n2o_nit, &
               model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
             used = g_send_data(cobalt%id_wc_vert_int_jprod_n2o_denit, cobalt%wc_vert_int_jprod_n2o_denit, &
@@ -2212,6 +2214,14 @@ module COBALT_send_diag
             used = g_send_data(cobalt%id_wc_vert_int_jsink_n2o, cobalt%wc_vert_int_jsink_n2o, &
               model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
             if (do_n2o_decomp) then !{
+            used = g_send_data(cobalt%id_wc_vert_int_jn2o_nit, cobalt%wc_vert_int_jn2o_nit, &
+              model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
+            used = g_send_data(cobalt%id_wc_vert_int_jn2o_denit, cobalt%wc_vert_int_jn2o_denit, &
+              model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
+            used = g_send_data(cobalt%id_wc_vert_int_jn2o_atm, cobalt%wc_vert_int_jn2o_atm, &
+              model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
+            used = g_send_data(cobalt%id_wc_vert_int_jn2o_sed, cobalt%wc_vert_int_jn2o_sed, &
+              model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
             used = g_send_data(cobalt%id_wc_vert_int_jsink_n2o_nit, cobalt%wc_vert_int_jsink_n2o_nit, &
               model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
             used = g_send_data(cobalt%id_wc_vert_int_jsink_n2o_denit, cobalt%wc_vert_int_jsink_n2o_denit, &
