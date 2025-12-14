@@ -123,6 +123,12 @@ module COBALT_send_diag
             call g_tracer_get_pointer(tracer_list,'n2o_atm','field',cobalt%p_n2o_atm )
             call g_tracer_get_pointer(tracer_list,'n2o_sed','field',cobalt%p_n2o_sed )
             endif !}
+            ! YZ: N2O_diag, 06/12/2025 {
+            if (do_n2o_diag) then !{
+            call g_tracer_get_pointer(tracer_list,'n2o_diag'       ,'field',cobalt%p_n2o_diag        )
+            call g_tracer_get_pointer(tracer_list,'n2o_diag_nit'   ,'field',cobalt%p_n2o_diag_nit    )
+            call g_tracer_get_pointer(tracer_list,'n2o_diag_lowo2' ,'field',cobalt%p_n2o_diag_lowo2  )
+            endif !} ! } YZ
           endif !} ! } YZ
 
           ! Flag to recalculate the carbon-system parameters at the end of the time step to align with the prognostic
@@ -318,6 +324,15 @@ module COBALT_send_diag
             used = g_send_data(cobalt%id_sfc_n2o_sed, cobalt%p_n2o_sed(:,:,1,tau), &
               model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc,ie_in=iec, je_in=jec)
             endif !}
+            ! YZ: N2O_diag, 06/12/2025 {
+            if (do_n2o_diag) then !{
+            used = g_send_data(cobalt%id_sfc_n2o_diag, cobalt%p_n2o_diag(:,:,1,tau), &
+              model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc,ie_in=iec, je_in=jec)
+            used = g_send_data(cobalt%id_sfc_n2o_diag_nit, cobalt%p_n2o_diag_nit(:,:,1,tau), &
+              model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc,ie_in=iec, je_in=jec)
+            used = g_send_data(cobalt%id_sfc_n2o_diag_lowo2, cobalt%p_n2o_diag_lowo2(:,:,1,tau), &
+              model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc,ie_in=iec, je_in=jec)
+            endif !} ! } YZ
           endif !} ! } YZ
 
           ! Calculate bottom layer values over a thickness defined by cobalt%bottom_thickness 
@@ -665,6 +680,12 @@ module COBALT_send_diag
             cobalt%tot_layer_int_n2o_atm(:,:,:) = cobalt%p_n2o_atm(:,:,:,tau)*rho_dzt(:,:,:)
             cobalt%tot_layer_int_n2o_sed(:,:,:) = cobalt%p_n2o_sed(:,:,:,tau)*rho_dzt(:,:,:)
             endif !}
+            ! YZ: N2O_diag, 06/12/2025 {
+            if (do_n2o_diag) then !{
+            cobalt%tot_layer_int_n2o_diag(:,:,:) = cobalt%p_n2o_diag(:,:,:,tau)*rho_dzt(:,:,:)
+            cobalt%tot_layer_int_n2o_diag_nit(:,:,:) = cobalt%p_n2o_diag_nit(:,:,:,tau)*rho_dzt(:,:,:)
+            cobalt%tot_layer_int_n2o_diag_lowo2(:,:,:) = cobalt%p_n2o_diag_lowo2(:,:,:,tau)*rho_dzt(:,:,:)
+            endif !} ! } YZ
           endif !}! } YZ
 
           do j = jsc, jec ; do i = isc, iec !{
@@ -687,6 +708,12 @@ module COBALT_send_diag
               cobalt%wc_vert_int_n2o_atm(i,j) = 0.0
               cobalt%wc_vert_int_n2o_sed(i,j) = 0.0
               endif !}
+              ! YZ: N2O_diag, 06/12/2025 {
+              if (do_n2o_diag) then !{
+              cobalt%wc_vert_int_n2o_diag(i,j) = 0.0
+              cobalt%wc_vert_int_n2o_diag_nit(i,j) = 0.0
+              cobalt%wc_vert_int_n2o_diag_lowo2(i,j) = 0.0
+              endif !} ! } YZ
             endif !} ! } YZ
           enddo; enddo !} i,j
 
@@ -726,6 +753,15 @@ module COBALT_send_diag
               cobalt%wc_vert_int_n2o_sed(i,j) = cobalt%wc_vert_int_n2o_sed(i,j) + &
                 cobalt%tot_layer_int_n2o_sed(i,j,k)*grid_tmask(i,j,k)   
               endif !}
+              ! YZ: N2O_diag, 06/12/2025 {
+              if (do_n2o_diag) then !{
+              cobalt%wc_vert_int_n2o_diag(i,j) = cobalt%wc_vert_int_n2o_diag(i,j) + &
+                cobalt%tot_layer_int_n2o_diag(i,j,k)*grid_tmask(i,j,k)
+              cobalt%wc_vert_int_n2o_diag_nit(i,j) = cobalt%wc_vert_int_n2o_diag_nit(i,j) + &
+                cobalt%tot_layer_int_n2o_diag_nit(i,j,k)*grid_tmask(i,j,k)
+              cobalt%wc_vert_int_n2o_diag_lowo2(i,j) = cobalt%wc_vert_int_n2o_diag_lowo2(i,j) + &
+                cobalt%tot_layer_int_n2o_diag_lowo2(i,j,k)*grid_tmask(i,j,k)
+              endif !} ! } YZ
             endif !} ! } YZ
           enddo; enddo; enddo  !} i,j,k
 
@@ -758,6 +794,15 @@ module COBALT_send_diag
             used = g_send_data(cobalt%id_tot_layer_int_n2o_sed,cobalt%tot_layer_int_n2o_sed,&
               model_time, rmask = grid_tmask,is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)  
             endif !}
+            ! YZ: N2O_diag, 06/12/2025 {
+            if (do_n2o_diag) then !{
+            used = g_send_data(cobalt%id_tot_layer_int_n2o_diag,cobalt%tot_layer_int_n2o_diag,&
+              model_time, rmask = grid_tmask,is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
+            used = g_send_data(cobalt%id_tot_layer_int_n2o_diag_nit,cobalt%tot_layer_int_n2o_diag_nit,&
+              model_time, rmask = grid_tmask,is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
+            used = g_send_data(cobalt%id_tot_layer_int_n2o_diag_lowo2,cobalt%tot_layer_int_n2o_diag_lowo2,&
+              model_time, rmask = grid_tmask,is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
+            endif !} ! } YZ
           endif !} ! } YZ
 
           ! send water column integral diag
@@ -795,6 +840,15 @@ module COBALT_send_diag
             used = g_send_data(cobalt%id_wc_vert_int_n2o_sed, cobalt%wc_vert_int_n2o_sed, &
               model_time, rmask = grid_tmask(:,:,1),is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)  
             endif !}
+            ! YZ: N2O_diag, 06/12/2025 {
+            if (do_n2o_diag) then !{
+            used = g_send_data(cobalt%id_wc_vert_int_n2o_diag, cobalt%wc_vert_int_n2o_diag, &
+              model_time, rmask = grid_tmask(:,:,1),is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
+            used = g_send_data(cobalt%id_wc_vert_int_n2o_diag_nit, cobalt%wc_vert_int_n2o_diag_nit, &
+              model_time, rmask = grid_tmask(:,:,1),is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
+            used = g_send_data(cobalt%id_wc_vert_int_n2o_diag_lowo2, cobalt%wc_vert_int_n2o_diag_lowo2, &
+              model_time, rmask = grid_tmask(:,:,1),is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
+            endif !} ! } YZ
           endif !} ! } YZ
 
           ! make generic?  _intz with user-specified integration depth
@@ -1464,6 +1518,21 @@ module COBALT_send_diag
             used = g_send_data(cobalt%id_fgn2o_sed,  cobalt%stf_gas_n2o_sed, &
               model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
             endif !}
+            ! YZ: N2O_diag, 06/12/2025 {
+            if (do_n2o_diag) then !{
+            used = g_send_data(cobalt%id_dpn2o_diag,  cobalt%deltap_n2o_diag * 0.1013, &
+              model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
+            used = g_send_data(cobalt%id_dpn2o_diag_nit,  cobalt%deltap_n2o_diag_nit * 0.1013, &
+              model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
+            used = g_send_data(cobalt%id_dpn2o_diag_lowo2,  cobalt%deltap_n2o_diag_lowo2 * 0.1013, &
+              model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
+            used = g_send_data(cobalt%id_fgn2o_diag,  cobalt%stf_gas_n2o_diag, &
+              model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
+            used = g_send_data(cobalt%id_fgn2o_diag_nit,  cobalt%stf_gas_n2o_diag_nit, &
+              model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
+            used = g_send_data(cobalt%id_fgn2o_diag_lowo2,  cobalt%stf_gas_n2o_diag_lowo2, &
+              model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
+            endif !} ! } YZ
           endif !} ! } YZ
 
           !
@@ -1844,6 +1913,21 @@ module COBALT_send_diag
             used = g_send_data(cobalt%id_jsink_n2o_sed, cobalt%jsink_n2o_sed, &
               model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
             endif !}
+            ! YZ: N2O_diag, 06/12/2025 {
+            if (do_n2o_diag) then !{
+            used = g_send_data(cobalt%id_jprod_n2o_diag, cobalt%jprod_n2o_diag, &
+              model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
+            used = g_send_data(cobalt%id_jprod_n2o_diag_nit, cobalt%jprod_n2o_diag_nit, &
+              model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
+            used = g_send_data(cobalt%id_jprod_n2o_diag_lowo2, cobalt%jprod_n2o_diag_lowo2, &
+              model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
+            used = g_send_data(cobalt%id_jsink_n2o_diag, cobalt%jsink_n2o_diag, &
+              model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
+            used = g_send_data(cobalt%id_jsink_n2o_diag_nit, cobalt%jsink_n2o_diag_nit, &
+              model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
+            used = g_send_data(cobalt%id_jsink_n2o_diag_lowo2, cobalt%jsink_n2o_diag_lowo2, &
+              model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
+            endif !} ! } YZ
             used = g_send_data(cobalt%id_jremin_ndet_denit1, cobalt%jremin_ndet_denit1, &
               model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
             used = g_send_data(cobalt%id_jremin_ndet_denit2, cobalt%jremin_ndet_denit2, &
@@ -1938,6 +2022,15 @@ module COBALT_send_diag
             used = g_send_data(cobalt%id_b_n2o_sed, -cobalt%b_n2o_sed, &
               model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
             endif !}
+            ! YZ: N2O_diag, 06/12/2025 {
+            if (do_n2o_diag) then !{
+            used = g_send_data(cobalt%id_b_n2o_diag, -cobalt%b_n2o_diag, &
+              model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
+            used = g_send_data(cobalt%id_b_n2o_diag_nit, -cobalt%b_n2o_diag_nit, &
+              model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
+            used = g_send_data(cobalt%id_b_n2o_diag_lowo2, -cobalt%b_n2o_diag_lowo2, &
+              model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
+            endif !} ! } YZ
           endif ! } ! } YZ
 
           !
@@ -2231,6 +2324,27 @@ module COBALT_send_diag
             used = g_send_data(cobalt%id_wc_vert_int_jsink_n2o_sed, cobalt%wc_vert_int_jsink_n2o_sed, &
               model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
             endif !}
+            ! YZ: N2O_diag, 06/12/2025 {
+            if (do_n2o_diag) then !{
+            used = g_send_data(cobalt%id_wc_vert_int_jn2o_diag, cobalt%wc_vert_int_jn2o_diag, &
+              model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
+            used = g_send_data(cobalt%id_wc_vert_int_jn2o_diag_nit, cobalt%wc_vert_int_jn2o_diag_nit, &
+              model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
+            used = g_send_data(cobalt%id_wc_vert_int_jn2o_diag_lowo2, cobalt%wc_vert_int_jn2o_diag_lowo2, &
+              model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
+            used = g_send_data(cobalt%id_wc_vert_int_jprod_n2o_diag, cobalt%wc_vert_int_jprod_n2o_diag, &
+              model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
+            used = g_send_data(cobalt%id_wc_vert_int_jprod_n2o_diag_nit, cobalt%wc_vert_int_jprod_n2o_diag_nit, &
+              model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
+            used = g_send_data(cobalt%id_wc_vert_int_jprod_n2o_diag_lowo2, cobalt%wc_vert_int_jprod_n2o_diag_lowo2, &
+              model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
+            used = g_send_data(cobalt%id_wc_vert_int_jsink_n2o_diag, cobalt%wc_vert_int_jsink_n2o_diag, &
+              model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
+            used = g_send_data(cobalt%id_wc_vert_int_jsink_n2o_diag_nit, cobalt%wc_vert_int_jsink_n2o_diag_nit, &
+              model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
+            used = g_send_data(cobalt%id_wc_vert_int_jsink_n2o_diag_lowo2, cobalt%wc_vert_int_jsink_n2o_diag_lowo2, &
+              model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
+            endif !} ! } YZ
           endif !} ! } YZ
 
           !
@@ -2296,6 +2410,21 @@ module COBALT_send_diag
             used = g_send_data(cobalt%id_jn2o_sed_plus_btm, cobalt%jn2o_sed_plus_btm, &
               model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
             endif !}
+            ! YZ: N2O_diag, 06/12/2025 {
+            if (do_n2o_diag) then !{
+            used = g_send_data(cobalt%id_jn2o_diag, cobalt%jn2o_diag, &
+              model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
+            used = g_send_data(cobalt%id_jn2o_diag_nit, cobalt%jn2o_diag_nit, &
+              model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
+            used = g_send_data(cobalt%id_jn2o_diag_lowo2, cobalt%jn2o_diag_lowo2, &
+              model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
+            used = g_send_data(cobalt%id_jn2o_diag_plus_btm, cobalt%jn2o_diag_plus_btm, &
+              model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
+            used = g_send_data(cobalt%id_jn2o_diag_nit_plus_btm, cobalt%jn2o_diag_nit_plus_btm, &
+              model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
+            used = g_send_data(cobalt%id_jn2o_diag_lowo2_plus_btm, cobalt%jn2o_diag_lowo2_plus_btm, &
+              model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
+            endif !} ! } YZ
           endif !} ! } YZ
 
           !

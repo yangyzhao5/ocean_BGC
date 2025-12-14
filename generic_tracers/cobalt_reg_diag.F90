@@ -1876,6 +1876,31 @@ module COBALT_reg_diag
     cobalt%id_jsink_n2o_sed = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
          init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
     ! } YZ
+    ! YZ: N2O_diag, 06/12/2025 {
+    vardesc_temp = vardesc("jprod_n2o_diag","diagnostic N2O production",'h','L','s','mol N2O kg-1 s-1','f')
+    cobalt%id_jprod_n2o_diag = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+
+    vardesc_temp = vardesc("jprod_n2o_diag_nit","diagnostic N2O production from nitrification",'h','L','s','mol N2O kg-1 s-1','f')
+    cobalt%id_jprod_n2o_diag_nit = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+  
+    vardesc_temp = vardesc("jprod_n2o_diag_lowo2","diagnostic N2O production in low-oxygen pathway",'h','L','s','mol N2O kg-1 s-1','f')
+    cobalt%id_jprod_n2o_diag_lowo2 = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+    
+    vardesc_temp = vardesc("jsink_n2o_diag","Consumption of diagnostic N2O",'h','L','s','mol N2O kg-1 s-1','f')
+    cobalt%id_jsink_n2o_diag = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+ 
+    vardesc_temp = vardesc("jsink_n2o_diag_nit","Consumption of diagnostic N2O from nitrification",'h','L','s','mol N2O kg-1 s-1','f')
+    cobalt%id_jprod_n2o_diag_nit = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+ 
+    vardesc_temp = vardesc("jsink_n2o_diag_lowo2","Consumption of diagnostic N2O from low-oxygen pathway",'h','L','s','mol N2O kg-1 s-1','f')
+    cobalt%id_jsink_n2o_diag_lowo2 = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+    ! } YZ
 
     !
     ! Track total aerobic respiration in the water column
@@ -1944,6 +1969,19 @@ module COBALT_reg_diag
     
     vardesc_temp = vardesc("tot_layer_int_n2o_sed","Total N2O from the sediments boxwise",'h','L','s','mol m-2','f')
     cobalt%id_tot_layer_int_n2o_sed = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+    ! } YZ
+    ! YZ: N2O_diag, 06/12/2025 {
+    vardesc_temp = vardesc("tot_layer_int_n2o_diag","Diagnostic nitrous oxide boxwise",'h','L','s','mol m-2','f')
+    cobalt%id_tot_layer_int_n2o_diag = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+
+    vardesc_temp = vardesc("tot_layer_int_n2o_diag_nit","Diagnostic nitrous oxide from nitrification boxwise",'h','L','s','mol m-2','f')
+    cobalt%id_tot_layer_int_n2o_diag_nit = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+
+    vardesc_temp = vardesc("tot_layer_int_n2o_diag_lowo2","Diagnostic nitrous oxide from low-oxygen pathway boxwise",'h','L','s','mol m-2','f')
+    cobalt%id_tot_layer_int_n2o_diag_lowo2 = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
          init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
     ! } YZ
 
@@ -2410,6 +2448,19 @@ module COBALT_reg_diag
     cobalt%id_b_n2o_sed = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1) ! } YZ
 
+    ! YZ: N2O_diag, 06/12/2025 {
+    vardesc_temp = vardesc("b_n2o_diag","Benthic n2o_diag flux into ocean",'h','1','s','mol m-2 s-1','f')
+    cobalt%id_b_n2o_diag = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
+        init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+
+    vardesc_temp = vardesc("b_n2o_diag_nit","Benthic n2o_diag_nit flux into ocean",'h','1','s','mol m-2 s-1','f')
+    cobalt%id_b_n2o_diag_nit = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
+        init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+
+    vardesc_temp = vardesc("b_n2o_diag_lowo2","Benthic n2o_diag_lowo2 flux into ocean",'h','1','s','mol m-2 s-1','f')
+    cobalt%id_b_n2o_diag_lowo2 = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
+        init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1) ! } YZ
+
     !
     ! Surface Diagnostics
     !
@@ -2539,6 +2590,19 @@ module COBALT_reg_diag
 
     vardesc_temp = vardesc("sfc_n2o_sed","Surface Nitrous Oxide Sourced from Sediments",'h','1','s','mol kg-1','f')
     cobalt%id_sfc_n2o_sed = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
+        init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1) ! } YZ
+
+    ! YZ: N2O_diag, 06/12/2025 {
+    vardesc_temp = vardesc("sfc_n2o_diag","Surface Diagnostic Nitrous Oxide",'h','1','s','mol kg-1','f')
+    cobalt%id_sfc_n2o_diag = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
+        init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+
+    vardesc_temp = vardesc("sfc_n2o_diag_nit","Surface Diagnostic Nitrous Oxide from Nitrification",'h','1','s','mol kg-1','f')
+    cobalt%id_sfc_n2o_diag_nit = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
+        init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+
+    vardesc_temp = vardesc("sfc_n2o_diag_lowo2","Surface Diagnostic Nitrous Oxide from low-oxygen pathway",'h','1','s','mol kg-1','f')
+    cobalt%id_sfc_n2o_diag_lowo2 = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1) ! } YZ
 
     vardesc_temp = vardesc("btm_temp","Bottom Temperature",'h','1','s','deg C','f')
@@ -3260,6 +3324,52 @@ module COBALT_reg_diag
     cobalt%id_wc_vert_int_jsink_n2o_sed = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
          init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)  ! } YZ
 
+    ! YZ: N2O_diag, 06/12/2025 {
+    vardesc_temp = vardesc("wc_vert_int_jn2o_diag"," Water column diagnostic N2O net production, vertical integral",&
+                           'h','1','s','mol N2O m-2 s-1','f')
+    cobalt%id_wc_vert_int_jn2o_diag = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+
+    vardesc_temp = vardesc("wc_vert_int_jn2o_diag_nit"," Water column diagnostic N2O net production from nitrification, vertical integral",&
+                           'h','1','s','mol N2O m-2 s-1','f')
+    cobalt%id_wc_vert_int_jn2o_diag_nit = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+
+    vardesc_temp = vardesc("wc_vert_int_jn2o_diag_lowo2"," Water column diagnostic N2O net production from low-oxygen pathway, vertical integral",&
+                           'h','1','s','mol N2O m-2 s-1','f')
+    cobalt%id_wc_vert_int_jn2o_diag_lowo2 = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+
+    vardesc_temp = vardesc("wc_vert_int_jprod_n2o_diag"," Water column diagnostic N2O production, vertical integral",&
+                           'h','1','s','mol N2O m-2 s-1','f')
+    cobalt%id_wc_vert_int_jprod_n2o_diag = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+
+    vardesc_temp = vardesc("wc_vert_int_jprod_n2o_diag_nit"," Water column diagnostic N2O production from nitrification, vertical integral",&
+                           'h','1','s','mol N2O m-2 s-1','f')
+    cobalt%id_wc_vert_int_jprod_n2o_diag_nit = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+
+    vardesc_temp = vardesc("wc_vert_int_jprod_n2o_diag_lowo2"," Water column diagnostic N2O production from low-oxygen pathway, vertical integral",&
+                           'h','1','s','mol N2O m-2 s-1','f')
+    cobalt%id_wc_vert_int_jprod_n2o_diag_lowo2 = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+ 
+    vardesc_temp = vardesc("wc_vert_int_jsink_n2o_diag"," Water column consumption of diagnostic N2O, vertical integral",&
+                           'h','1','s','mol N2O m-2 s-1','f')
+    cobalt%id_wc_vert_int_jsink_n2o_diag = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+
+    vardesc_temp = vardesc("wc_vert_int_jsink_n2o_diag_nit"," Water column consumption of diagnostic N2O from nitrification, vertical integral",&
+                           'h','1','s','mol N2O m-2 s-1','f')
+    cobalt%id_wc_vert_int_jsink_n2o_diag_nit = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+
+    vardesc_temp = vardesc("wc_vert_int_jsink_n2o_diag_lowo2"," Water column consumption of diagnostic N2O from low-oxygen pathway, vertical integral",&
+                           'h','1','s','mol N2O m-2 s-1','f')
+    cobalt%id_wc_vert_int_jsink_n2o_diag_lowo2 = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1) ! } YZ
+
     !
     ! 100m integrated biomass
     !
@@ -3409,6 +3519,19 @@ module COBALT_reg_diag
     vardesc_temp = vardesc("wc_vert_int_n2o_sed","Total N2O from the sediments vertical integral",'h','1','s','mol m-2','f')
     cobalt%id_wc_vert_int_n2o_sed = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
          init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)  ! } YZ
+
+    ! YZ: N2O_diag, 06/12/2025 {
+    vardesc_temp = vardesc("wc_vert_int_n2o_diag","Diagnostic nitrous oxide vertical integral",'h','1','s','mol m-2','f')
+    cobalt%id_wc_vert_int_n2o_diag = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+
+    vardesc_temp = vardesc("wc_vert_int_n2o_diag_nit","Diagnostic nitrous oxide from nitrification vertical integral",'h','1','s','mol m-2','f')
+    cobalt%id_wc_vert_int_n2o_diag_nit = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+
+    vardesc_temp = vardesc("wc_vert_int_n2o_diag_lowo2","Diagnostic nitrous oxide from low-oxygen pathway vertical integral",'h','1','s','mol m-2','f')
+    cobalt%id_wc_vert_int_n2o_diag_lowo2 = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1) ! } YZ
 
     !
     ! sinking flux = 100m
@@ -3616,6 +3739,31 @@ module COBALT_reg_diag
 
     vardesc_temp = vardesc("jn2o_sed_plus_btm","Nitrous oxide source from the sediments plus btm",'h','L','s','mol kg-1 s-1','f')
     cobalt%id_jn2o_sed_plus_btm = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)  ! } YZ
+
+    ! YZ: N2O_diag, 06/12/2025 {
+    vardesc_temp = vardesc("jn2o_diag","Diagnostic nitrous oxide source",'h','L','s','mol kg-1 s-1','f')
+    cobalt%id_jn2o_diag = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+
+    vardesc_temp = vardesc("jn2o_diag_nit","Diagnostic nitrous oxide source from nitrification",'h','L','s','mol kg-1 s-1','f')
+    cobalt%id_jn2o_diag_nit = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+
+    vardesc_temp = vardesc("jn2o_diag_lowo2","Diagnostic nitrous oxide source from low-oxygen pathway",'h','L','s','mol kg-1 s-1','f')
+    cobalt%id_jn2o_diag_lowo2 = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+
+    vardesc_temp = vardesc("jn2o_diag_plus_btm","Diagnostic nitrous oxide source plus btm",'h','L','s','mol kg-1 s-1','f')
+    cobalt%id_jn2o_diag_plus_btm = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+
+    vardesc_temp = vardesc("jn2o_diag_nit_plus_btm","Diagnostic nitrous oxide source from nitrification plus btm",'h','L','s','mol kg-1 s-1','f')
+    cobalt%id_jn2o_diag_nit_plus_btm = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+
+    vardesc_temp = vardesc("jn2o_diag_lowo2_plus_btm","Diagnostic nitrous oxide source from low-oxygen pathway plus btm",'h','L','s','mol kg-1 s-1','f')
+    cobalt%id_jn2o_diag_lowo2_plus_btm = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
          init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)  ! } YZ
 
 !==============================================================================================================
