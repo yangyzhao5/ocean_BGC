@@ -1876,6 +1876,15 @@ module COBALT_reg_diag
     cobalt%id_jsink_n2o_sed = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
          init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
     ! } YZ
+    ! YZ: N2O_apt, 13/12/2025 {
+    vardesc_temp = vardesc("jprod_n2o_apht_nit","N2O production from nitrification in the aphotic zone",'h','L','s','mol N2O kg-1 s-1','f')
+    cobalt%id_jprod_n2o_apht_nit = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+    
+    vardesc_temp = vardesc("jsink_n2o_apht","N2O_apht consumption",'h','L','s','mol N2O kg-1 s-1','f')
+    cobalt%id_jsink_n2o_apht = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1) ! } YZ
+
     ! YZ: N2O_diag, 06/12/2025 {
     vardesc_temp = vardesc("jprod_n2o_diag","diagnostic N2O production",'h','L','s','mol N2O kg-1 s-1','f')
     cobalt%id_jprod_n2o_diag = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
@@ -1954,7 +1963,11 @@ module COBALT_reg_diag
     vardesc_temp = vardesc("tot_layer_int_n2o","Total nitrous oxide boxwise",'h','L','s','mol m-2','f')
     cobalt%id_tot_layer_int_n2o = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
          init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
-    
+   
+    vardesc_temp = vardesc("tot_layer_int_n2o_apht","Total nitrous oxide from the aphotic zone boxwise",'h','L','s','mol m-2','f')
+    cobalt%id_tot_layer_int_n2o_apht = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)  ! YZ: N2O_apht, 13/12/2025
+ 
     vardesc_temp = vardesc("tot_layer_int_n2o_nit","Total N2O from nitrification boxwise",'h','L','s','mol m-2','f')
     cobalt%id_tot_layer_int_n2o_nit = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
          init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
@@ -2432,6 +2445,10 @@ module COBALT_reg_diag
     cobalt%id_b_n2o = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
 
+    vardesc_temp = vardesc("b_n2o_apht","Benthic n2o_apht flux into ocean",'h','1','s','mol m-2 s-1','f')
+    cobalt%id_b_n2o_apht = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
+        init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)  ! YZ: N2O_apht, 13/12/2025
+
     vardesc_temp = vardesc("b_n2o_nit","Benthic n2o_nit flux into ocean",'h','1','s','mol m-2 s-1','f')
     cobalt%id_b_n2o_nit = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
@@ -2575,6 +2592,10 @@ module COBALT_reg_diag
     vardesc_temp = vardesc("sfc_n2o","Surface Nitrous Oxide",'h','1','s','mol kg-1','f')
     cobalt%id_sfc_n2o = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+
+    vardesc_temp = vardesc("sfc_n2o_apht","Surface Nitrous Oxide from aphotic zone",'h','1','s','mol kg-1','f')
+    cobalt%id_sfc_n2o_apht = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
+        init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)  ! YZ: N2O_apht, 13/12/2025
 
     vardesc_temp = vardesc("sfc_n2o_nit","Surface Nitrous Oxide Sourced from Nitrification",'h','1','s','mol kg-1','f')
     cobalt%id_sfc_n2o_nit = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
@@ -3324,6 +3345,21 @@ module COBALT_reg_diag
     cobalt%id_wc_vert_int_jsink_n2o_sed = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
          init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)  ! } YZ
 
+    ! YZ: N2O_apht, 13/12/2025 {
+    vardesc_temp = vardesc("wc_vert_int_jn2o_apht"," Water column N2O net production from aphotic zone, vertical integral",&
+                           'h','1','s','mol N2O m-2 s-1','f')
+    cobalt%id_wc_vert_int_jn2o_apht = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+    
+    vardesc_temp = vardesc("wc_vert_int_jprod_n2o_apht_nit"," Water column N2O production from nitrification in the aphotic zone, vertical integral",&
+                           'h','1','s','mol N2O m-2 s-1','f')
+    cobalt%id_wc_vert_int_jprod_n2o_apht_nit = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+    
+    vardesc_temp = vardesc("wc_vert_int_jsink_n2o_apht"," Water column N2O_apht consumption vertical integral",'h','1','s','mol N2O m-2 s-1','f')
+    cobalt%id_wc_vert_int_jsink_n2o_apht = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1) ! } YZ
+
     ! YZ: N2O_diag, 06/12/2025 {
     vardesc_temp = vardesc("wc_vert_int_jn2o_diag"," Water column diagnostic N2O net production, vertical integral",&
                            'h','1','s','mol N2O m-2 s-1','f')
@@ -3503,6 +3539,10 @@ module COBALT_reg_diag
     vardesc_temp = vardesc("wc_vert_int_n2o","Total nitrous oxide vertical integral",'h','1','s','mol m-2','f')
     cobalt%id_wc_vert_int_n2o = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
          init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+
+    vardesc_temp = vardesc("wc_vert_int_n2o_apht","Total nitrous oxide from aphotic zone vertical integral",'h','1','s','mol m-2','f')
+    cobalt%id_wc_vert_int_n2o_apht = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1) ! YZ: N2O_apht, 13/12/2025
 
     vardesc_temp = vardesc("wc_vert_int_n2o_nit","Total N2O from nitrification vertical integral",'h','1','s','mol m-2','f')
     cobalt%id_wc_vert_int_n2o_nit = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
@@ -3704,7 +3744,11 @@ module COBALT_reg_diag
     vardesc_temp = vardesc("jn2o","Nitrous oxide source",'h','L','s','mol kg-1 s-1','f')
     cobalt%id_jn2o = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
          init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
-   
+  
+    vardesc_temp = vardesc("jn2o_apht","Nitrous oxide source from aphotic zone",'h','L','s','mol kg-1 s-1','f')
+    cobalt%id_jn2o_apht = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1) ! YZ: N2O_apht, 13/12/2025
+
     vardesc_temp = vardesc("jn2o_nit","Nitrous oxide source from nitrification",'h','L','s','mol kg-1 s-1','f')
     cobalt%id_jn2o_nit = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
          init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
@@ -3724,6 +3768,10 @@ module COBALT_reg_diag
     vardesc_temp = vardesc("jn2o_plus_btm","Nitrous oxide source plus btm",'h','L','s','mol kg-1 s-1','f')
     cobalt%id_jn2o_plus_btm = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
          init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+
+    vardesc_temp = vardesc("jn2o_apht_plus_btm","Nitrous oxide source from aphotic zone plus btm",'h','L','s','mol kg-1 s-1','f')
+    cobalt%id_jn2o_apht_plus_btm = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1) ! YZ: N2O_apht, 13/12/2025
 
     vardesc_temp = vardesc("jn2o_nit_plus_btm","Nitrous oxide source from nitrification plus btm",'h','L','s','mol kg-1 s-1','f')
     cobalt%id_jn2o_nit_plus_btm = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&

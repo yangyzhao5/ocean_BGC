@@ -117,6 +117,7 @@ module COBALT_send_diag
           ! YZ: N2O_module, 13/06/2025 {
           if (do_n2o) then !{
             call g_tracer_get_pointer(tracer_list,'n2o' ,'field',cobalt%p_n2o    )
+            call g_tracer_get_pointer(tracer_list,'n2o_apht','field',cobalt%p_n2o_apht ) ! YZ: N2O_apht, 13/12/2025
             if (do_n2o_decomp) then !{
             call g_tracer_get_pointer(tracer_list,'n2o_nit','field',cobalt%p_n2o_nit )
             call g_tracer_get_pointer(tracer_list,'n2o_denit','field',cobalt%p_n2o_denit )
@@ -314,6 +315,8 @@ module COBALT_send_diag
           if (do_n2o) then !{
             used = g_send_data(cobalt%id_sfc_n2o, cobalt%p_n2o(:,:,1,tau), &
               model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc,ie_in=iec, je_in=jec)
+            used = g_send_data(cobalt%id_sfc_n2o_apht, cobalt%p_n2o_apht(:,:,1,tau), &
+              model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc,ie_in=iec, je_in=jec) ! YZ: N2O_apht, 13/12/2025
             if (do_n2o_decomp) then !{
             used = g_send_data(cobalt%id_sfc_n2o_nit, cobalt%p_n2o_nit(:,:,1,tau), &
               model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc,ie_in=iec, je_in=jec)
@@ -674,6 +677,7 @@ module COBALT_send_diag
           ! YZ: N2O_module, 13/06/2025 {
           if (do_n2o) then !{
             cobalt%tot_layer_int_n2o(:,:,:) = cobalt%p_n2o(:,:,:,tau)*rho_dzt(:,:,:)
+            cobalt%tot_layer_int_n2o_apht(:,:,:) = cobalt%p_n2o_apht(:,:,:,tau)*rho_dzt(:,:,:) ! YZ: N2O_apht, 13/12/2025
             if (do_n2o_decomp) then !{
             cobalt%tot_layer_int_n2o_nit(:,:,:) = cobalt%p_n2o_nit(:,:,:,tau)*rho_dzt(:,:,:)
             cobalt%tot_layer_int_n2o_denit(:,:,:) = cobalt%p_n2o_denit(:,:,:,tau)*rho_dzt(:,:,:)
@@ -702,6 +706,7 @@ module COBALT_send_diag
             ! YZ: N2O_module, 13/06/2025 {
             if (do_n2o) then !{
               cobalt%wc_vert_int_n2o(i,j) = 0.0
+              cobalt%wc_vert_int_n2o_apht(i,j) = 0.0 ! YZ: N2O_apht, 13/12/2025
               if (do_n2o_decomp) then !{
               cobalt%wc_vert_int_n2o_nit(i,j) = 0.0
               cobalt%wc_vert_int_n2o_denit(i,j) = 0.0
@@ -743,6 +748,8 @@ module COBALT_send_diag
             if (do_n2o) then !{
               cobalt%wc_vert_int_n2o(i,j) = cobalt%wc_vert_int_n2o(i,j) + &
                 cobalt%tot_layer_int_n2o(i,j,k)*grid_tmask(i,j,k)
+              cobalt%wc_vert_int_n2o_apht(i,j) = cobalt%wc_vert_int_n2o_apht(i,j) + &
+                cobalt%tot_layer_int_n2o_apht(i,j,k)*grid_tmask(i,j,k)  ! YZ: N2O_apht, 13/12/2025
               if (do_n2o_decomp) then !{
               cobalt%wc_vert_int_n2o_nit(i,j) = cobalt%wc_vert_int_n2o_nit(i,j) + &
                 cobalt%tot_layer_int_n2o_nit(i,j,k)*grid_tmask(i,j,k)
@@ -784,6 +791,8 @@ module COBALT_send_diag
           if (do_n2o) then !{
             used = g_send_data(cobalt%id_tot_layer_int_n2o,cobalt%tot_layer_int_n2o,&
               model_time, rmask = grid_tmask,is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
+            used = g_send_data(cobalt%id_tot_layer_int_n2o_apht,cobalt%tot_layer_int_n2o_apht,&
+              model_time, rmask = grid_tmask,is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk) ! YZ: N2O_apht, 13/12/2025
             if (do_n2o_decomp) then !{
             used = g_send_data(cobalt%id_tot_layer_int_n2o_nit,cobalt%tot_layer_int_n2o_nit,&
               model_time, rmask = grid_tmask,is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
@@ -830,6 +839,8 @@ module COBALT_send_diag
           if (do_n2o) then !{
             used = g_send_data(cobalt%id_wc_vert_int_n2o, cobalt%wc_vert_int_n2o, &
               model_time, rmask = grid_tmask(:,:,1),is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
+            used = g_send_data(cobalt%id_wc_vert_int_n2o_apht, cobalt%wc_vert_int_n2o_apht, &
+              model_time, rmask = grid_tmask(:,:,1),is_in=isc, js_in=jsc, ie_in=iec, je_in=jec) ! YZ: N2O_apht, 13/12/2025
             if (do_n2o_decomp) then !{
             used = g_send_data(cobalt%id_wc_vert_int_n2o_nit, cobalt%wc_vert_int_n2o_nit, &
               model_time, rmask = grid_tmask(:,:,1),is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
@@ -1500,6 +1511,11 @@ module COBALT_send_diag
               model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
             used = g_send_data(cobalt%id_fgn2o,  cobalt%stf_gas_n2o, &
               model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
+            ! YZ: N2O_apht, 13/12/2025 {
+            used = g_send_data(cobalt%id_dpn2o_apht,  cobalt%deltap_n2o_apht * 0.1013, &
+              model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
+            used = g_send_data(cobalt%id_fgn2o_apht,  cobalt%stf_gas_n2o_apht, &
+              model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc, ie_in=iec, je_in=jec) ! } YZ
             if (do_n2o_decomp) then !{
             used = g_send_data(cobalt%id_dpn2o_nit,  cobalt%deltap_n2o_nit * 0.1013, &
               model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
@@ -1903,6 +1919,11 @@ module COBALT_send_diag
               model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
             used = g_send_data(cobalt%id_jsink_n2o, cobalt%jsink_n2o, &
               model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
+            ! YZ: N2O_apht, 13/12/2025 {
+            used = g_send_data(cobalt%id_jprod_n2o_apht_nit, cobalt%jprod_n2o_apht_nit, &
+              model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
+            used = g_send_data(cobalt%id_jsink_n2o_apht, cobalt%jsink_n2o_apht, &
+              model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk) ! } YZ
             if (do_n2o_decomp) then !{
             used = g_send_data(cobalt%id_jsink_n2o_nit, cobalt%jsink_n2o_nit, &
               model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
@@ -2012,6 +2033,8 @@ module COBALT_send_diag
           if (do_n2o) then !{
             used = g_send_data(cobalt%id_b_n2o, -cobalt%b_n2o, &
               model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
+            used = g_send_data(cobalt%id_b_n2o_apht, -cobalt%b_n2o_apht, &
+              model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc, ie_in=iec, je_in=jec) ! YZ: N2O_apht, 13/12/2025
             if (do_n2o_decomp) then !{
             used = g_send_data(cobalt%id_b_n2o_nit, -cobalt%b_n2o_nit, &
               model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
@@ -2306,6 +2329,13 @@ module COBALT_send_diag
               model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
             used = g_send_data(cobalt%id_wc_vert_int_jsink_n2o, cobalt%wc_vert_int_jsink_n2o, &
               model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
+            ! YZ: N2O_apht, 13/12/2025 {
+            used = g_send_data(cobalt%id_wc_vert_int_jn2o_apht, cobalt%wc_vert_int_jn2o_apht, &
+              model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
+            used = g_send_data(cobalt%id_wc_vert_int_jprod_n2o_apht_nit, cobalt%wc_vert_int_jprod_n2o_apht_nit, &
+              model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
+            used = g_send_data(cobalt%id_wc_vert_int_jsink_n2o_apht, cobalt%wc_vert_int_jsink_n2o_apht, &
+              model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc, ie_in=iec, je_in=jec) ! } YZ
             if (do_n2o_decomp) then !{
             used = g_send_data(cobalt%id_wc_vert_int_jn2o_nit, cobalt%wc_vert_int_jn2o_nit, &
               model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
@@ -2392,6 +2422,11 @@ module COBALT_send_diag
               model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
             used = g_send_data(cobalt%id_jn2o_plus_btm, cobalt%jn2o_plus_btm, &
               model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
+            ! YZ: N2O_apht, 13/12/2025 {
+            used = g_send_data(cobalt%id_jn2o_apht, cobalt%jn2o_apht, &
+              model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
+            used = g_send_data(cobalt%id_jn2o_apht_plus_btm, cobalt%jn2o_apht_plus_btm, &
+              model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk) ! } YZ
             if (do_n2o_decomp) then !{
             used = g_send_data(cobalt%id_jn2o_nit, cobalt%jn2o_nit, &
               model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)

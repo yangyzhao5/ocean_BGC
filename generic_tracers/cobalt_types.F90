@@ -839,6 +839,12 @@ module cobalt_types
           jremin_ndet_denit1,&
           jremin_ndet_denit2,&
           jremin_ndet_denit0,&   ! } YZ
+          f_n2o_apht,&           ! YZ: N2O_apht, 13/12/2025 {
+          jn2o_apht,&
+          jn2o_apht_plus_btm,&
+          jprod_n2o_apht_nit,&
+          jsink_n2o_apht,&
+          tot_layer_int_n2o_apht,& ! } YZ
           f_n2o_diag,&           ! YZ: N2O_diag, 06/12/2025 {
           f_n2o_diag_nit,&
           f_n2o_diag_lowo2,&
@@ -866,6 +872,9 @@ module cobalt_types
           nh3_csurf,nh3_alpha,pnh3_csurf,&
           b_n2o,b_n2o_nit,b_n2o_denit,b_n2o_atm,b_n2o_sed,& ! YZ: N2O_module, 13/06/2025
           n2o_alpha,n2o_csurf,& ! YZ
+          n2o_nit_alpha,n2o_denit_alpha,n2o_atm_alpha,n2o_sed_alpha,&
+          n2o_nit_csurf,n2o_denit_csurf,n2o_atm_csurf,n2o_sed_csurf,& 
+          b_n2o_apht,n2o_apht_alpha,n2o_apht_csurf,&   ! YZ: N2O_apht, 13/12/2025
           b_n2o_diag,b_n2o_diag_nit,b_n2o_diag_lowo2,& ! YZ: N2O_diag, 06/12/2025 {
           n2o_diag_alpha,n2o_diag_nit_alpha,n2o_diag_lowo2_alpha,&
           n2o_diag_csurf,n2o_diag_nit_csurf,n2o_diag_lowo2_csurf,& ! } YZ
@@ -1015,6 +1024,10 @@ module cobalt_types
           wc_vert_int_jsink_n2o_denit,&
           wc_vert_int_jsink_n2o_atm,&
           wc_vert_int_jsink_n2o_sed,&   ! } YZ
+          wc_vert_int_n2o_apht,&       ! YZ: N2O_apht, 13/12/2025 {
+          wc_vert_int_jn2o_apht,&
+          wc_vert_int_jprod_n2o_apht_nit,&
+          wc_vert_int_jsink_n2o_apht,& ! } YZ
           wc_vert_int_n2o_diag,&       ! YZ: N2O_diag, 06/12/2025 {
           wc_vert_int_n2o_diag_nit,&
           wc_vert_int_n2o_diag_lowo2,&
@@ -1069,6 +1082,7 @@ module cobalt_types
           p_n2o_denit,&
           p_n2o_atm,&
           p_n2o_sed,&   ! } YZ
+          p_n2o_apht,&  ! YZ: N2O_apht, 13/12/2025
           p_n2o_diag,&  ! YZ: N2O_diag, 06/12/2025 {
           p_n2o_diag_nit,&
           p_n2o_diag_lowo2,& ! } YZ
@@ -1121,6 +1135,8 @@ module cobalt_types
           deltap_n2o_denit,&
           deltap_n2o_atm,&
           deltap_n2o_sed,&  ! } YZ
+          stf_gas_n2o_apht,& ! YZ: N2O_apht, 13/12/2025 {
+          deltap_n2o_apht,&  ! } YZ
           stf_gas_n2o_diag,& ! YZ: N2O_diag, 06/12/2025 {
           stf_gas_n2o_diag_nit,&
           stf_gas_n2o_diag_lowo2,&
@@ -1515,6 +1531,19 @@ module cobalt_types
           id_jremin_ndet_denit1         = -1, &
           id_jremin_ndet_denit2         = -1, &
           id_jremin_ndet_denit0         = -1, &  ! } YZ
+          id_jn2o_apht                  = -1, &  ! YZ: N2O_apht, 13/12/2025 {
+          id_jn2o_apht_plus_btm         = -1, &
+          id_jprod_n2o_apht_nit         = -1, &
+          id_jsink_n2o_apht             = -1, &
+          id_sfc_n2o_apht               = -1, &
+          id_b_n2o_apht                 = -1, &
+          id_fgn2o_apht                 = -1, &
+          id_dpn2o_apht                 = -1, &
+          id_wc_vert_int_n2o_apht       = -1, &
+          id_wc_vert_int_jn2o_apht      = -1, &
+          id_wc_vert_int_jprod_n2o_apht_nit   = -1, &
+          id_wc_vert_int_jsink_n2o_apht = -1, &
+          id_tot_layer_int_n2o_apht     = -1, &  ! } YZ
           id_jn2o_diag                  = -1, &  ! YZ: N2O_diag, 06/12/2025     
           id_jn2o_diag_nit              = -1, &
           id_jn2o_diag_lowo2            = -1, &
