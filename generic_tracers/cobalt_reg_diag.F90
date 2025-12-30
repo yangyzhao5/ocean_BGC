@@ -1090,6 +1090,22 @@ module COBALT_reg_diag
     zoo(3)%id_jingest_n = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
          init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
 
+    ! YZ: 15N, 25/11/2025 {
+    vardesc_temp = vardesc("jingest_n_15n_Smz","Ingestion of 15N-labelled nitrogen by small zooplankton",&
+                           'h','L','s','mol N kg-1 s-1','f')
+    zoo(1)%id_jingest_n_15n = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+
+    vardesc_temp = vardesc("jingest_n_15n_Mdz","Ingestion of 15N-labelled nitrogen by medium-sized zooplankton",&
+                           'h','L','s','mol N kg-1 s-1','f')
+    zoo(2)%id_jingest_n_15n = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+
+    vardesc_temp = vardesc("jingest_n_15n_Lgz","Ingestion of 15N-labelled nitrogen by large zooplankton",&
+                           'h','L','s','mol N kg-1 s-1','f')
+    zoo(3)%id_jingest_n_15n = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1) ! } YZ
+
     vardesc_temp = vardesc("jingest_p_Smz","Ingestion of phosphorous by small zooplankton", &
                            'h','L','s','mol P kg-1 s-1','f')
     zoo(1)%id_jingest_p = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
@@ -1629,6 +1645,38 @@ module COBALT_reg_diag
     cobalt%id_jprod_nh4_plus_btm = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
          init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
 
+    ! YZ: 15N, 25/11/2025 {
+    vardesc_temp = vardesc("jprod_ndet_15n","Detrital 15N-labelled PON production",'h','L','s','mol N kg-1 s-1','f')
+    cobalt%id_jprod_ndet_15n = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+
+    vardesc_temp = vardesc("jprod_ndet_15n_fast","Fast-sinking detrital 15N-labelled PON production",'h','L','s','mol N kg-1 s-1','f')
+    cobalt%id_jprod_ndet_15n_fast = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1) 
+
+    vardesc_temp = vardesc("jprod_ldon_15n","labile dissolved organic 15N-labelled nitrogen production",&
+                            'h','L','s','mol N kg-1 s-1','f')
+    cobalt%id_jprod_ldon_15n = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+
+    vardesc_temp = vardesc("jprod_srdon_15n","refractory dissolved organic 15N-labelled nitrogen production",&
+                            'h','L','s','mol N kg-1 s-1','f')
+    cobalt%id_jprod_srdon_15n = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+
+    vardesc_temp = vardesc("jprod_sldon_15n","semi-labile dissolved organic 15N-labelled nitrogen production",&
+                            'h','L','s','mol N kg-1 s-1','f')
+    cobalt%id_jprod_sldon_15n = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+
+    vardesc_temp = vardesc("jprod_nh4_15n","15N-labelled NH4 production",'h','L','s','mol NH4 kg-1 s-1','f')
+    cobalt%id_jprod_nh4_15n = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+
+    vardesc_temp = vardesc("jprod_nh4_15n_plus_btm","15N-labelled NH4 production plus bottom fluxes",'h','L','s','mol NH4 kg-1 s-1','f')
+    cobalt%id_jprod_nh4_15n_plus_btm = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1) ! } YZ
+
     !
     ! loss diagnostics: detrital loss terms
     !
@@ -1735,6 +1783,15 @@ module COBALT_reg_diag
     vardesc_temp = vardesc("jno3_iceberg","iceberg nitrate efflux",'h','L','s','mol N kg-1 s-1','f')
     cobalt%id_jno3_iceberg = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
          init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+
+    ! YZ: 15N, 25/11/2025 {
+    vardesc_temp = vardesc("jno3_15n_iceberg","iceberg 15N-labelled nitrate efflux",'h','L','s','mol N kg-1 s-1','f')
+    cobalt%id_jno3_15n_iceberg = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+
+    vardesc_temp = vardesc("jno3_18o_iceberg","iceberg 18O-labelled nitrate efflux",'h','L','s','mol N kg-1 s-1','f')
+    cobalt%id_jno3_18o_iceberg = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1) ! } YZ
 
     vardesc_temp = vardesc("jpo4_iceberg","iceberg phosphate efflux",'h','L','s','mol P kg-1 s-1','f')
     cobalt%id_jpo4_iceberg = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
@@ -1855,6 +1912,11 @@ module COBALT_reg_diag
     vardesc_temp = vardesc("tot_layer_int_n","Total Nitrogen (NO3+NH4+ON) boxwise",'h','L','s','mol m-2','f')
     cobalt%id_tot_layer_int_n = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
          init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+
+    ! YZ: 15N, 25/11/2025 {
+    vardesc_temp = vardesc("tot_layer_int_n_15n","Total 15N-labelled Nitrogen (NO3+NH4+ON) boxwise",'h','L','s','mol m-2','f')
+    cobalt%id_tot_layer_int_n_15n = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1) ! } YZ
 
     vardesc_temp = vardesc("tot_layer_int_p","Total Phosphorus (PO4+OP) boxwise",'h','L','s','mol m-2','f')
     cobalt%id_tot_layer_int_p = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
@@ -2216,6 +2278,35 @@ module COBALT_reg_diag
     cobalt%id_fntot_btm = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
          init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
 
+    ! YZ: 15N, 25/11/2025 {
+    vardesc_temp = vardesc("fndet_15n_btm","15N-labelled ndet sinking flux to bottom",'h','1','s','mol m-2 s-1','f')
+    cobalt%id_fndet_15n_btm = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+
+    vardesc_temp = vardesc("fndet_15n_fast_btm","Fast-sinking 15N-labelled nitrogen detritus flux to bottom",'h','1','s','mol m-2 s-1','f')
+    cobalt%id_fndet_15n_fast_btm = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+
+    vardesc_temp = vardesc("fndi_15n_btm","diazo 15N sinking flux to bottom",'h','1','s','mol m-2 s-1','f')
+    phyto(DIAZO)%id_fn_15n_btm = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+
+    vardesc_temp = vardesc("fnlg_15n_btm","large phyto 15N sinking flux to bottom",'h','1','s','mol m-2 s-1','f')
+    phyto(LARGE)%id_fn_btm = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+
+    vardesc_temp = vardesc("fnmd_15n_btm","medium phyto 15N sinking flux to bottom",'h','1','s','mol m-2 s-1','f')
+    phyto(MEDIUM)%id_fn_15n_btm = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+
+    vardesc_temp = vardesc("fnsm_15n_btm","small phyto 15N sinking flux to bottom",'h','1','s','mol m-2 s-1','f')
+    phyto(SMALL)%id_fn_15n_btm = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+
+    vardesc_temp = vardesc("fntot_15n_btm","Total 15N sinking flux to bottom",'h','1','s','mol m-2 s-1','f')
+    cobalt%id_fntot_15n_btm = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1) ! } YZ
+    
     vardesc_temp = vardesc("fnso4red_sed","Sediment Ndet remineralized by SO4 reduction without HS- oxidation", &
             'h','1','s','mol m-2 s-1','f')
     cobalt%id_fnso4red_sed = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
@@ -2317,6 +2408,19 @@ module COBALT_reg_diag
     vardesc_temp = vardesc("b_sio4","Benthic sio4 flux into ocean",'h','1','s','mol m-2 s-1','f')
     cobalt%id_b_sio4 = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+
+    ! YZ: 15N, 25/11/2025 {
+    vardesc_temp = vardesc("b_nh4_15n","Benthic 15N-labelled nh4 flux into ocean",'h','1','s','mol m-2 s-1','f')
+    cobalt%id_b_nh4_15n = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
+        init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+
+    vardesc_temp = vardesc("b_no3_15n","Benthic 15N-labelled no3 flux into ocean",'h','1','s','mol m-2 s-1','f')
+    cobalt%id_b_no3_15n = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
+        init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+
+    vardesc_temp = vardesc("b_no3_18o","Benthic 18O-labelled no3 flux into ocean",'h','1','s','mol m-2 s-1','f')
+    cobalt%id_b_no3_18o = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
+        init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1) ! } YZ
 
     !
     ! Surface Diagnostics
@@ -3181,6 +3285,11 @@ module COBALT_reg_diag
     cobalt%id_wc_vert_int_n = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
          init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
 
+    ! YZ: 15N, 25/11/2025 {
+    vardesc_temp = vardesc("wc_vert_int_n_15n","Total 15N-labelled nitrogen vertical integral",'h','1','s','mol m-2','f')
+    cobalt%id_wc_vert_int_n_15n = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1) ! } YZ
+
     vardesc_temp = vardesc("wc_vert_int_p","Total phosphorus vertical integral",'h','1','s','mol m-2','f')
     cobalt%id_wc_vert_int_p = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
          init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
@@ -3368,6 +3477,78 @@ module COBALT_reg_diag
     cobalt%id_jo2 = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
          init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
 
+    ! YZ: 15N, 25/11/2025 {
+    vardesc_temp = vardesc("jno3_15n","15N-labelled no3 source",'h','L','s','mol kg-1 s-1','f')
+    cobalt%id_jno3_15n = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+
+    vardesc_temp = vardesc("jno3_18o","18O-labelled no3 source",'h','L','s','mol kg-1 s-1','f')
+    cobalt%id_jno3_18o = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+
+    vardesc_temp = vardesc("jnh4_15n","15N-labelled NH4 source",'h','L','s','mol kg-1 s-1','f')
+    cobalt%id_jnh4_15n = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+
+    vardesc_temp = vardesc("jndet_15n","15N-labelled NDET source",'h','L','s','mol kg-1 s-1','f')
+    cobalt%id_jndet_15n = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+
+    vardesc_temp = vardesc("jndet_15n_fast","Fast-sinking 15N-labelled NDET source",'h','L','s','mol kg-1 s-1','f')
+    cobalt%id_jndet_15n_fast = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+
+    vardesc_temp = vardesc("jnbact_15n","15N-labelled bacteria biomass source",'h','L','s','mol kg-1 s-1','f')
+    cobalt%id_jnbact_15n = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+
+    vardesc_temp = vardesc("jndi_15n","15N-labelled diazotroph biomass source",'h','L','s','mol kg-1 s-1','f')
+    cobalt%id_jndi_15n = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+
+    vardesc_temp = vardesc("jnlg_15n","15N-labelled large phytoplankton biomass source",'h','L','s','mol kg-1 s-1','f')
+    cobalt%id_jnlg_15n = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+
+    vardesc_temp = vardesc("jnmd_15n","15N-labelled medium phytoplankton biomass source",'h','L','s','mol kg-1 s-1','f')
+    cobalt%id_jnmd_15n = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+
+    vardesc_temp = vardesc("jnsm_15n","15N-labelled small phytoplankton biomass source",'h','L','s','mol kg-1 s-1','f')
+    cobalt%id_jnsm_15n = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+
+    vardesc_temp = vardesc("jnsmz_15n","15N-labelled small zooplankton source",'h','L','s','mol kg-1 s-1','f')
+    cobalt%id_jnsmz_15n = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+
+    vardesc_temp = vardesc("jnmdz_15n","15N-labelled medium zooplankton source",'h','L','s','mol kg-1 s-1','f')
+    cobalt%id_jnmdz_15n = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+
+    vardesc_temp = vardesc("jnlgz_15n","15N-labelled large zooplankton source",'h','L','s','mol kg-1 s-1','f')
+    cobalt%id_jnlgz_15n = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+
+    vardesc_temp = vardesc("jldon_15n","15N-labelled labile DON source",'h','L','s','mol kg-1 s-1','f')
+    cobalt%id_jldon_15n = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+ 
+    vardesc_temp = vardesc("jsldon_15n","15N-labelled semi-labile DON source",'h','L','s','mol kg-1 s-1','f')
+    cobalt%id_jsldon_15n = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+
+    vardesc_temp = vardesc("jsrdon_15n","15N-labelled semi-refractory DON source",'h','L','s','mol kg-1 s-1','f')
+    cobalt%id_jsrdon_15n = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+
+    vardesc_temp = vardesc("jtsldon_15n","15N-labelled TSLDON source",'h','L','s','mol kg-1 s-1','f')
+    cobalt%id_jtsldon_15n = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+
+    vardesc_temp = vardesc("jnh4_15n_plus_btm","15N-labelled NH4 source plus btm",'h','L','s','mol kg-1 s-1','f')
+    cobalt%id_jnh4_15n_plus_btm = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1) ! } YZ
 
 !==============================================================================================================
 ! 2016/07/05 jgj register and send temperature as a test
@@ -3640,6 +3821,10 @@ module COBALT_reg_diag
          cmor_field_name="pon", cmor_units="mol m-3",                          &
          cmor_standard_name="mole_concentration_of_particulate_organic_matter_expressed_as_nitrogen_in_sea_water", &
          cmor_long_name="Mole Concentration of Particulate Organic Matter expressed as Nitrogen in sea water")
+    ! YZ: 15N, 25/11/2025 {
+    vardesc_temp = vardesc("pon_15n","Mole Concentration of Particulate Organic Nitrogen labelled 15N in sea water",'h','L','s','mol N m-3','f')
+    cobalt%id_pon_15n = register_diag_field(package_name, vardesc_temp%name, axes(1:3), &
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1) ! } YZ
 
     vardesc_temp = vardesc("pop_raw","Mole Concentration of Particulate Organic Matter expressed as Phosphorus in sea water",'h','L','s','mol m-3','f')
     cobalt%id_pop = register_diag_field(package_name, vardesc_temp%name, axes(1:3), &
@@ -3670,6 +3855,10 @@ module COBALT_reg_diag
          cmor_field_name="phyn", cmor_units="mol m-3",                          &
          cmor_standard_name="mole_concentration_of_phytoplankton_expressed_as_nitrogen_in_sea_water", &
          cmor_long_name="Mole Concentration of Total Phytoplankton expressed as Nitrogen in sea water")
+    ! YZ: 15N, 25/11/2025 {
+    vardesc_temp = vardesc("phyn_15n","Mole Concentration of Total Phytoplankton Nitrogen labelled 15N in sea water",'h','L','s','mol m-3','f')
+    cobalt%id_phyn_15n = register_diag_field(package_name, vardesc_temp%name, axes(1:3), &
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1) ! } YZ
 
     vardesc_temp = vardesc("phyp_raw","Mole Concentration of Total Phytoplankton expressed as Phosphorus in sea water",'h','L','s','mol m-3','f')
     cobalt%id_phyp = register_diag_field(package_name, vardesc_temp%name, axes(1:3), &
@@ -3800,6 +3989,10 @@ module COBALT_reg_diag
          cmor_field_name="expn", cmor_units="mol m-2 s-1",                          &
          cmor_standard_name="sinking_mole_flux_of_particulate_organic_nitrogen_in_sea_water", &
          cmor_long_name="Sinking Particulate Organic Nitrogen Flux")
+    ! YZ: 15N, 25/11/2025 {
+    vardesc_temp = vardesc("expn_15n","Sinking Particulate Organic 15N-labelled Nitrogen Flux",'h','L','s','mol m-2 s-1','f')
+    cobalt%id_expn_15n_tp = register_diag_field(package_name, vardesc_temp%name, axes(1:3), &
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1) ! } YZ
 
     vardesc_temp = vardesc("expp_raw","Sinking Particulate Organic Phosphorus Flux",'h','L','s','mol m-2 s-1','f')
     cobalt%id_expp_tp = register_diag_field(package_name, vardesc_temp%name, axes(1:3), &
@@ -3852,7 +4045,11 @@ module COBALT_reg_diag
          cmor_field_name="expn_i", cmor_units="mol m-2 s-1",                          &
          cmor_standard_name="sinking_mole_flux_of_particulate_organic_nitrogen_in_sea_water", &
          cmor_long_name="Sinking Particulate Organic Nitrogen Flux")
-         
+    ! YZ: 15N, 25/11/2025 {
+    vardesc_temp = vardesc("expn_15n_i","Sinking Particulate Organic 15N-labelled Nitrogen Flux (@interfaces)",'h','i','s','mol m-2 s-1','f')
+    cobalt%id_expn_15n_i = register_diag_field(package_name, vardesc_temp%name, axes(1:1), &
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1) ! } YZ
+
     vardesc_temp = vardesc("expp_raw_i","Sinking Particulate Organic Phosphorus Flux (@interfaces)",'h','L','s','mol m-2 s-1','f')
     cobalt%id_expp_i = register_diag_field(package_name, vardesc_temp%name, axes(1:1), &
          init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1, &

@@ -26,6 +26,7 @@ module cobalt_types
   logical, public :: do_14c             = .false.            !< If true, then simulate radiocarbon 
   logical, public :: do_nh3_atm_ocean_exchange = .false.     ! If true, then do NH3 air-sea exchange 
   logical, public :: do_r2omip       = .false.               !< If true, simulate for R2OMIP ! YZ: R2OMIP, 07/07/2025
+  logical, public :: do_15n          = .false.               !< If true, simulate for 15N ! YZ: 15N, 25/11/2025
   !
   logical, public :: do_vertfill_pre = .false.
   logical, public :: debug           = .false.             !< not use   
@@ -116,6 +117,7 @@ module cobalt_types
      real, ALLOCATABLE, dimension(:,:)  ::  def_fe_bw_100    !<
      real, ALLOCATABLE, dimension(:,:)  ::  irrlim_bw_100    !<
      real, ALLOCATABLE, dimension(:,:)  ::  fn_btm           !<
+     real, ALLOCATABLE, dimension(:,:)  ::  fn_15n_btm       !< ! YZ: 15N, 25/11/2025
      real, ALLOCATABLE, dimension(:,:)  ::  ffe_btm          !<
      real, ALLOCATABLE, dimension(:,:)  ::  fp_btm           !<
      real, ALLOCATABLE, dimension(:,:)  ::  fsi_btm          !<
@@ -125,6 +127,7 @@ module cobalt_types
      real, ALLOCATABLE, dimension(:,:,:)  ::  def_fe         !<
      real, ALLOCATABLE, dimension(:,:,:)  ::  f_fe           !<
      real, ALLOCATABLE, dimension(:,:,:)  ::  f_n            !<
+     real, ALLOCATABLE, dimension(:,:,:)  ::  f_n_15n        !< ! YZ: 15N, 25/11/2025
      real, ALLOCATABLE, dimension(:,:,:)  ::  f_p            !<
      real, ALLOCATABLE, dimension(:,:,:)  ::  felim          !<
      real, ALLOCATABLE, dimension(:,:,:)  ::  irrlim         !<
@@ -254,6 +257,7 @@ module cobalt_types
      integer ::  id_sfc_mu           = -1
      integer ::  id_sfc_pcmlim_aclm  = -1
      integer ::  id_fn_btm           = -1
+     integer ::  id_fn_15n_btm       = -1 ! YZ: 15N, 25/11/2025
      integer ::  id_fp_btm           = -1
      integer ::  id_ffe_btm          = -1
      integer ::  id_fsi_btm          = -1
@@ -294,11 +298,13 @@ module cobalt_types
     real, ALLOCATABLE, dimension(:,:)  ::   jremin_n_100    !< zooplankton nitrogen remineralization integral in upper 100m 
     real, ALLOCATABLE, dimension(:,:)  ::   f_n_100         !< zooplankton nitrogen biomass in upper 100m
     real, ALLOCATABLE, dimension(:,:,:) ::  f_n          !< zooplankton biomass
+    real, ALLOCATABLE, dimension(:,:,:) ::  f_n_15n      !< zooplankton biomass labelled 15N, ! YZ: 15N, 25/11/2025
     real, ALLOCATABLE, dimension(:,:,:) ::  jzloss_n     !< Losses of n due to consumption by other zooplankton groups
     real, ALLOCATABLE, dimension(:,:,:) ::  jzloss_p     !< Losses of p due to consumption by other zooplankton groups
     real, ALLOCATABLE, dimension(:,:,:) ::  jhploss_n    !< Losses of n due to consumption by unresolved higher preds
     real, ALLOCATABLE, dimension(:,:,:) ::  jhploss_p    !< Losses of p due to consumption by unresolved higher preds
     real, ALLOCATABLE, dimension(:,:,:) ::  jingest_n    !< Total ingestion of n
+    real, ALLOCATABLE, dimension(:,:,:) ::  jingest_n_15n!< Total ingestion of n labelled 15N, ! YZ: 15N, 25/11/2025
     real, ALLOCATABLE, dimension(:,:,:) ::  jingest_p    !< Total ingestion of p
     real, ALLOCATABLE, dimension(:,:,:) ::  jingest_sio2 !< Total ingestion of silicate
     real, ALLOCATABLE, dimension(:,:,:) ::  jingest_fe   !< Total ingestion of iron
@@ -317,13 +323,24 @@ module cobalt_types
     real, ALLOCATABLE, dimension(:,:,:) ::  jprod_po4    !< phosphate production by zooplankton
     real, ALLOCATABLE, dimension(:,:,:) ::  jprod_nh4    !< ammonia production by zooplankton
     real, ALLOCATABLE, dimension(:,:,:) ::  jprod_n      !< zooplankton production
+    real, ALLOCATABLE, dimension(:,:,:) ::  jprod_n_15n  !< zooplankton production labelled 15N ! YZ: 15N, 25/11/2025
     real, ALLOCATABLE, dimension(:,:,:) ::  o2lim        !< oxygen limitation of zooplankton activity
     real, ALLOCATABLE, dimension(:,:,:) ::  temp_lim     !< Temperature limitation
+    real, ALLOCATABLE, dimension(:,:,:) ::  r15n_ingest  !< 15N/14N of zooplankton ingestion ! YZ: 15N, 25/11/2025 {
+    real, ALLOCATABLE, dimension(:,:,:) ::  r15n_digest  !< 15N/14N of zooplankton digestion
+    real, ALLOCATABLE, dimension(:,:,:) ::  f15n_digest  !< fraction of 15N in zooplankton digestion
+    real, ALLOCATABLE, dimension(:,:,:) ::  r15n_egest   !< 15N/14N of zooplankton egestion
+    real, ALLOCATABLE, dimension(:,:,:) ::  f15n_egest   !< fraction of 15N in zooplankton egestion
+    real, ALLOCATABLE, dimension(:,:,:) ::  r15n_resp    !< 15N/14N of digestion for zooplankton respiration
+    real, ALLOCATABLE, dimension(:,:,:) ::  f15n_resp    !< fraction of 15N in digestion for zooplankton respiration
+    real, ALLOCATABLE, dimension(:,:,:) ::  r15n_growth  !< 15N/14N of digestion for zooplnakton growth
+    real, ALLOCATABLE, dimension(:,:,:) ::  f15n_growth  !< fraction of 15N in digestion for zooplankton growth ! } YZ
     integer ::  id_jzloss_n       = -1 !< ID associated with diagnostics for losses of n due to consumption by other zooplankton groups
     integer ::  id_jzloss_p       = -1 !< ID associated with diagnostics for losses of p due to consumption by other zooplankton groups
     integer ::  id_jhploss_n      = -1 !< ID associated with diagnostics for losses of n due to consumption by unresolved higher preds 
     integer ::  id_jhploss_p      = -1 !< ID associated with diagnostics for losses of p due to consumption by unresolved higher preds
     integer ::  id_jingest_n      = -1 !< ID associated with diagnostics for total ingestion of n
+    integer ::  id_jingest_n_15n  = -1 !< ID associated with diagnostics for total ingestion of n labelled 15N, ! YZ: 15N, 25/11/2025
     integer ::  id_jingest_p      = -1 !< ID associated with diagnostics for total ingestion of p
     integer ::  id_jingest_sio2   = -1 !< ID associated with diagnostics for total ingestion of silicate
     integer ::  id_jingest_fe     = -1 !< ID associated with diagnostics for total ingestion of iron
@@ -370,6 +387,7 @@ module cobalt_types
     real, ALLOCATABLE, dimension(:,:)  ::       juptake_ldon_100 !< Bacterial uptake of labile dissolved org. nitrogen in upper 100m
     real, ALLOCATABLE, dimension(:,:)  ::       f_n_100          !< Bacterial nitrogen biomass in upper 100m
     real, ALLOCATABLE, dimension(:,:,:) ::      f_n              !< bacteria biomass
+    real, ALLOCATABLE, dimension(:,:,:) ::      f_n_15n          !< bacteria biomass labelled 15N, ! YZ: 15N, 25/11/2025
     real, ALLOCATABLE, dimension(:,:,:) ::      jzloss_n         !< Losses of n due to consumption by zooplankton
     real, ALLOCATABLE, dimension(:,:,:) ::      jzloss_p         !< Losses of p due to consumption by zooplankton
     real, ALLOCATABLE, dimension(:,:,:) ::      jhploss_n        !< Losses of n due to consumption by unresolved higher preds
@@ -384,7 +402,12 @@ module cobalt_types
     real, ALLOCATABLE, dimension(:,:,:) ::      ldonlim          !< limitation due to organic substrate
     real, ALLOCATABLE, dimension(:,:,:) ::      o2lim            !< limitation due to oxygen
     real, ALLOCATABLE, dimension(:,:,:) ::      temp_lim         !< Temperature limitation
-    real, ALLOCATABLE, dimension(:,:,:) ::      no3lim           !< limitation due to nitrate ! YZ: 07/07/2025
+    real, ALLOCATABLE, dimension(:,:,:) ::      no3lim           !< limitation due to nitrate ! YZ: 07/07/2025 
+    real, ALLOCATABLE, dimension(:,:,:) ::      r15n_uptake_ldon !< 15N/14N of ldon uptake by bacteria ! YZ: 15N, 25/11/2025 {
+    real, ALLOCATABLE, dimension(:,:,:) ::      r15n_resp        !< 15N/14N of ldon for bacteria respiration
+    real, ALLOCATABLE, dimension(:,:,:) ::      f15n_resp        !< fraction of 15N in ldon for bacteria respiration
+    real, ALLOCATABLE, dimension(:,:,:) ::      r15n_growth      !< 15N/14N of ldon for bacteira growth
+    real, ALLOCATABLE, dimension(:,:,:) ::      f15n_growth      !< fraction of 15N in ldon for bacteria growth ! } YZ
     integer ::  id_jzloss_n         = -1  !< ID associated with diagnostics for losses of n due to consumption by zooplankton
     integer ::  id_jzloss_p         = -1  !< ID associated with diagnostics for losses of p due to consumption by zooplankton
     integer ::  id_jhploss_n        = -1  !< ID associated with diagnostics for losses of n due to consumption by unresolved higher preds
@@ -556,6 +579,23 @@ module cobalt_types
           hp_ipa_lgz,       & ! "  "  "  "  "  "  "  "  "   large zooplankton to hp
           hp_ipa_det,       & ! "  "  "  "  "  "  "  "  "   detritus to hp
           hp_phi_det,       & ! fraction of ingested N to detritus
+          r15n_atm,            & ! YZ: 15N, 25/11/2025 {
+          r15n_iceberg,        &
+          alpha15n_nfix,       &
+          alpha15n_uptake_no3, &
+          alpha15n_uptake_nh4, &
+          alpha15n_nitrif,     &
+          alpha15n_remin,      &
+          alpha15n_uptake_ldon,&
+          alpha15n_decay_don,  &
+          alpha15n_denit_wc,   &
+          alpha15n_denit_sed,  &
+          alpha15n_zoo_ingest, &
+          alpha15n_zoo_egest,  &
+          alpha15n_zoo_digest, &
+          alpha15n_nofrac,     & 
+          r18o_nitrif,         &
+          r18o_iceberg,        & ! } YZ
           frac_fastsinking    ! fraction of higher predator detritus that is fast-sinking ! YZ: fast-sinking, 07/07/2025
 
      real, dimension(3)                    :: total_atm_co2
@@ -630,6 +670,38 @@ module cobalt_types
           f_pmd_btf,&
           f_plg_btf,&
           f_pdi_btf,&
+          f_ldon_15n,&    ! YZ: 15N, 25/11/2025 {
+          f_ndet_15n,&
+          f_ndet_15n_fast,&
+          f_nh4_15n,&
+          f_no3_15n,&
+          f_no3_18o,&
+          f_srdon_15n,&
+          f_sldon_15n,&
+          f_tsldon_15n,&
+          f_ndet_15n_btf,&
+          f_ndet_15n_fast_btf,&
+          f_nsm_15n_btf,&
+          f_nmd_15n_btf,&
+          f_nlg_15n_btf,&
+          f_ndi_15n_btf,& 
+          f_d15n_no3,&
+          f_d15n_nh4,&
+          f_d15n_ndi,&
+          f_d15n_nlg,&
+          f_d15n_nmd,&
+          f_d15n_nsm,&
+          f_d15n_nsmz,&
+          f_d15n_nmdz,&
+          f_d15n_nlgz,&
+          f_d15n_ldon,&
+          f_d15n_sldon,&
+          f_d15n_srdon,&
+          f_d15n_nbact,&
+          f_d15n_ndet,&
+          f_d15n_ndet_fast,&
+          f_d18o_no3,&
+          f_d15n_tsldon,&  ! } YZ
           jnbact,&
           jndi,&
           jnsm,&
@@ -764,6 +836,42 @@ module cobalt_types
           tot_layer_int_o2,&
           tot_layer_int_alk,&
           total_filter_feeding,&
+          jnbact_15n,&         ! YZ: 15N, 25/11/2025 {
+          jndi_15n,&
+          jnsm_15n,&
+          jnmd_15n,&
+          jnlg_15n,&
+          jnsmz_15n,&
+          jnmdz_15n,&
+          jnlgz_15n,&
+          jldon_15n,&
+          jndet_15n,&
+          jndet_15n_fast,&
+          jnh4_15n,&
+          jnh4_15n_plus_btm,&
+          jno3_15n,&
+          jno3_15n_plus_btm,&
+          jno3_18o,&
+          jno3_18o_plus_btm,&
+          jsrdon_15n,&
+          jsldon_15n,&
+          jtsldon_15n,&
+          jprod_ndet_15n,&
+          jprod_ndet_15n_fast,&
+          jprod_ldon_15n,&
+          jprod_sldon_15n,&
+          jprod_srdon_15n,&
+          jprod_nh4_15n,&
+          jprod_nh4_15n_plus_btm,&
+          jno3_15n_iceberg,&
+          jno3_18o_iceberg,&
+          hp_jingest_n_15n,&
+          tot_layer_int_n_15n,&
+          r15n_hp_ingest,&
+          r15n_hp_egest,&
+          f15n_hp_egest,&
+          r15n_hp_digest,&
+          f15n_hp_digest,& ! } YZ 
           nmd_diatoms,&
           nlg_diatoms,&
           nmd_misc,&
@@ -789,6 +897,7 @@ module cobalt_types
 
      real, dimension(:,:), ALLOCATABLE :: &
           b_alk,b_dic,b_fed,b_nh4,b_no3,b_o2,b_po4,b_sio4,b_di14c,&	! bottom flux terms
+          b_nh4_15n,b_no3_15n,b_no3_18o,& ! YZ: 15N, 25/11/2025
           co2_csurf,pco2_csurf,co2_alpha,c14o2_csurf,c14o2_alpha,&
           nh3_csurf,nh3_alpha,pnh3_csurf,&
           fcadet_arag_btm,&
@@ -914,7 +1023,19 @@ module cobalt_types
           wc_vert_int_jnamx,&
           wc_vert_int_jfe_iceberg,&
           wc_vert_int_jno3_iceberg,&
-          wc_vert_int_jpo4_iceberg
+          wc_vert_int_jpo4_iceberg,&
+          fndet_15n_btm,&          ! YZ: 15N, 25/11/2025 {
+          fndet_15n_fast_btm,&
+          fntot_15n_btm,&
+          btm_no3_15n,      &
+          btm_no3_18o,      &
+          r15n_ntot_btm,&
+          r15n_burial,&
+          f15n_burial,&
+          r15n_remin_sed,&
+          f15n_remin_sed,&
+          wc_vert_int_n_15n    ! } YZ
+
 !==============================================================================================================
 
      real, dimension(:,:,:,:), pointer :: &
@@ -962,7 +1083,25 @@ module cobalt_types
           p_sio4,&
           p_nsmz,&
           p_nmdz,&
-          p_nlgz
+          p_nlgz,&
+          p_ldon_15n,&    ! YZ: 15N, 25/11/2025
+          p_nbact_15n,&
+          p_ndet_15n,&
+          p_ndet_15n_fast,&
+          p_ndi_15n,&
+          p_nlg_15n,&
+          p_nmd_15n,&
+          p_nsm_15n,&
+          p_nh4_15n,&
+          p_no3_15n,&
+          p_no3_18o,&
+          p_srdon_15n,&
+          p_sldon_15n,&
+          p_tsldon_15n,&
+          p_nsmz_15n,&
+          p_nmdz_15n,&
+          p_nlgz_15n      ! } YZ
+
 
       real, dimension (:,:), allocatable :: &
           runoff_flux_alk,&
@@ -1239,6 +1378,46 @@ module cobalt_types
           id_wc_vert_int_jno3_iceberg = -1, &
           id_wc_vert_int_jpo4_iceberg = -1, &
           id_wc_vert_int_jnamx = -1, &
+          id_jnbact_15n = -1,          &  ! YZ: 15N, 25/11/2025 {
+          id_jndi_15n = -1,            &
+          id_jnlg_15n = -1,            &
+          id_jnmd_15n = -1,            &
+          id_jnsm_15n = -1,            &
+          id_jnsmz_15n = -1,           &
+          id_jnmdz_15n = -1,           &
+          id_jnlgz_15n = -1,           &
+          id_jldon_15n = -1,           &
+          id_jsldon_15n = -1,          &
+          id_jtsldon_15n = -1,         &
+          id_jsrdon_15n = -1,          &
+          id_jndet_15n = -1,           &
+          id_jndet_15n_fast = -1,      &
+          id_jnh4_15n = -1,            &
+          id_jnh4_15n_plus_btm = -1,   &
+          id_jno3_15n = -1,            &
+          id_jno3_15n_plus_btm = -1,   &
+          id_jno3_18o = -1,            &
+          id_jno3_18o_plus_btm = -1,   &
+          id_jprod_ndet_15n = -1,      &
+          id_jprod_ndet_15n_fast = -1, &
+          id_jprod_ldon_15n = -1,      &
+          id_jprod_sldon_15n = -1,     &
+          id_jprod_srdon_15n = -1,     &
+          id_jprod_nh4_15n = -1,       &
+          id_jprod_nh4_15n_plus_btm = -1, &
+          id_jno3_15n_iceberg = -1,    &
+          id_jno3_18o_iceberg = -1,    &
+          id_hp_jingest_n_15n = -1,    &
+          id_tot_layer_int_n_15n = -1, &
+          id_b_nh4_15n = -1,           &
+          id_b_no3_15n = -1,           &
+          id_b_no3_18o = -1,           &
+          id_fndet_15n_btm = -1,       &
+          id_fndet_15n_fast_btm = -1,  &
+          id_fntot_15n_btm = -1,       &
+          id_btm_no3_15n = -1,         &
+          id_btm_no3_18o = -1,         &
+          id_wc_vert_int_n_15n = -1,   & ! } YZ
           id_total_filter_feeding = -1,&
           id_nlg_diatoms = -1,         &
           id_nmd_diatoms = -1,         &
@@ -1348,10 +1527,12 @@ module cobalt_types
           id_chlmisc        = -1, &
           id_poc            = -1, &
           id_pon            = -1, &
+          id_pon_15n        = -1, & ! YZ: 15N, 25/11/2025
           id_pop            = -1, &
           id_bfe            = -1, &
           id_bsi            = -1, &
           id_phyn           = -1, &
+          id_phyn_15n       = -1, & ! YZ: 15N, 25/11/2025
           id_phyp           = -1, &
           id_phyfe          = -1, &
           id_physi          = -1, &
@@ -1369,6 +1550,7 @@ module cobalt_types
           id_pcalc          = -1, &
           id_expc_tp        = -1, &
           id_expn_tp        = -1, &
+          id_expn_15n_tp    = -1, & ! YZ: 15N, 25/11/2025
           id_expp_tp        = -1, &
           id_expfe_tp       = -1, &
           id_expsi_tp       = -1, &
@@ -1376,6 +1558,7 @@ module cobalt_types
           id_exparag_tp     = -1, &
           id_expc_i         = -1, &
           id_expn_i         = -1, &
+          id_expn_15n_i     = -1, & ! YZ: 15N, 25/11/2025
           id_expp_i         = -1, &
           id_expfe_i        = -1, &
           id_expsi_i        = -1, &

@@ -114,6 +114,27 @@ module COBALT_send_diag
           call g_tracer_get_pointer(tracer_list,'nlgz'   ,'field',cobalt%p_nlgz   )
           call g_tracer_get_pointer(tracer_list,'lith'   ,'field',cobalt%p_lith   )
           call g_tracer_get_pointer(tracer_list,'lithdet','field',cobalt%p_lithdet)
+          if (do_r2omip) call g_tracer_get_pointer(tracer_list,'tsldon'  ,'field',cobalt%p_tsldon )
+          ! YZ: 15N, 25/11/2025 {
+          if (do_15n) then !{
+          call g_tracer_get_pointer(tracer_list,'ldon_15n'   ,'field',cobalt%p_ldon_15n   )
+          call g_tracer_get_pointer(tracer_list,'nbact_15n'  ,'field',cobalt%p_nbact_15n  )
+          call g_tracer_get_pointer(tracer_list,'ndet_15n'   ,'field',cobalt%p_ndet_15n   )
+          call g_tracer_get_pointer(tracer_list,'ndet_15n_fast','field',cobalt%p_ndet_15n_fast)
+          call g_tracer_get_pointer(tracer_list,'ndi_15n'    ,'field',cobalt%p_ndi_15n    )
+          call g_tracer_get_pointer(tracer_list,'nlg_15n'    ,'field',cobalt%p_nlg_15n    )
+          call g_tracer_get_pointer(tracer_list,'nmd_15n'    ,'field',cobalt%p_nmd_15n    )
+          call g_tracer_get_pointer(tracer_list,'nsm_15n'    ,'field',cobalt%p_nsm_15n    )
+          call g_tracer_get_pointer(tracer_list,'nh4_15n'    ,'field',cobalt%p_nh4_15n    )
+          call g_tracer_get_pointer(tracer_list,'no3_15n'    ,'field',cobalt%p_no3_15n    )
+          call g_tracer_get_pointer(tracer_list,'no3_18o'    ,'field',cobalt%p_no3_18o    )
+          call g_tracer_get_pointer(tracer_list,'srdon_15n'  ,'field',cobalt%p_srdon_15n  )
+          call g_tracer_get_pointer(tracer_list,'sldon_15n'  ,'field',cobalt%p_sldon_15n  )
+          call g_tracer_get_pointer(tracer_list,'nsmz_15n'   ,'field',cobalt%p_nsmz_15n   )
+          call g_tracer_get_pointer(tracer_list,'nmdz_15n'   ,'field',cobalt%p_nmdz_15n   )
+          call g_tracer_get_pointer(tracer_list,'nlgz_15n'   ,'field',cobalt%p_nlgz_15n   )
+          if (do_r2omip) call g_tracer_get_pointer(tracer_list,'tsldon_15n'  ,'field',cobalt%p_tsldon_15n )
+          endif !} ! } YZ
 
           ! Flag to recalculate the carbon-system parameters at the end of the time step to align with the prognostic
           ! tracer values at the end of the time step.  If this is set to .False., variables are saved in
@@ -370,6 +391,13 @@ module COBALT_send_diag
             model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc,ie_in=iec, je_in=jec)
           used = g_send_data(cobalt%id_btm_no3, cobalt%btm_no3, &
             model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc,ie_in=iec, je_in=jec)
+          ! YZ: 15N, 25/11/2025 {
+          if (do_15n) then !{
+          used = g_send_data(cobalt%id_btm_no3_15n, cobalt%btm_no3_15n, &
+            model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc,ie_in=iec, je_in=jec)
+          used = g_send_data(cobalt%id_btm_no3_18o, cobalt%btm_no3_18o, &
+            model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc,ie_in=iec, je_in=jec)
+          endif !} ! } YZ
           used = g_send_data(cobalt%id_btm_alk, cobalt%btm_alk, &
             model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc,ie_in=iec, je_in=jec)
           used = g_send_data(cobalt%id_btm_dic, cobalt%btm_dic, &
@@ -553,8 +581,18 @@ module COBALT_send_diag
             cobalt%p_ldon(:,:,:,tau) + cobalt%p_sldon(:,:,:,tau) + cobalt%p_srdon(:,:,:,tau) +  cobalt%p_ndet(:,:,:,tau) + &
             cobalt%p_ndet_fast(:,:,:,tau) + cobalt%p_nsmz(:,:,:,tau) + cobalt%p_nmdz(:,:,:,tau) + cobalt%p_nlgz(:,:,:,tau)) * rho_dzt(:,:,:) ! YZ
           ! YZ: R2OMIP, 07/07/2025 {
-          if (do_r2omip) then
+          if (do_r2omip) then !{
             cobalt%tot_layer_int_n(:,:,:) = cobalt%tot_layer_int_n(:,:,:) + cobalt%p_tsldon(:,:,:,tau) * rho_dzt(:,:,:)
+          endif !} ! } YZ
+          ! YZ: 15N, 25/11/2025 {
+          if (do_15n) then !{
+            cobalt%tot_layer_int_n_15n(:,:,:) = (cobalt%p_no3_15n(:,:,:,tau) + cobalt%p_nh4_15n(:,:,:,tau) + cobalt%p_ndi_15n(:,:,:,tau) + &
+              cobalt%p_nlg_15n(:,:,:,tau) + cobalt%p_nmd_15n(:,:,:,tau) + cobalt%p_nsm_15n(:,:,:,tau) + cobalt%p_nbact_15n(:,:,:,tau) + &
+              cobalt%p_ldon_15n(:,:,:,tau) + cobalt%p_sldon_15n(:,:,:,tau) + cobalt%p_srdon_15n(:,:,:,tau) +  cobalt%p_ndet_15n(:,:,:,tau) + &
+              cobalt%p_ndet_15n_fast(:,:,:,tau) + cobalt%p_nsmz_15n(:,:,:,tau) + cobalt%p_nmdz_15n(:,:,:,tau) + cobalt%p_nlgz_15n(:,:,:,tau)) * rho_dzt(:,:,:)
+            if (do_r2omip) then !{
+              cobalt%tot_layer_int_n_15n(:,:,:) = cobalt%tot_layer_int_n_15n(:,:,:) + cobalt%p_tsldon_15n(:,:,:,tau) * rho_dzt(:,:,:)
+            endif !}
           endif !} ! } YZ
 
           cobalt%tot_layer_int_p(:,:,:) = (cobalt%p_po4(:,:,:,tau) + cobalt%p_pdi(:,:,:,tau) + cobalt%p_plg(:,:,:,tau) + &
@@ -582,6 +620,7 @@ module COBALT_send_diag
             cobalt%wc_vert_int_doc(i,j) = 0.0
             cobalt%wc_vert_int_poc(i,j) = 0.0
             cobalt%wc_vert_int_n(i,j) = 0.0
+            if (do_15n) cobalt%wc_vert_int_n_15n(i,j) = 0.0 ! YZ: 15N, 25/11/2025
             cobalt%wc_vert_int_p(i,j) = 0.0
             cobalt%wc_vert_int_fe(i,j) = 0.0
             cobalt%wc_vert_int_si(i,j) = 0.0
@@ -601,6 +640,11 @@ module COBALT_send_diag
               cobalt%tot_layer_int_poc(i,j,k)*grid_tmask(i,j,k)
             cobalt%wc_vert_int_n(i,j) = cobalt%wc_vert_int_n(i,j) + &
               cobalt%tot_layer_int_n(i,j,k)*grid_tmask(i,j,k)
+            ! YZ: 15N, 25/11/2025 {
+            if (do_15n) then !{
+              cobalt%wc_vert_int_n_15n(i,j) = cobalt%wc_vert_int_n_15n(i,j) + &
+                cobalt%tot_layer_int_n_15n(i,j,k)*grid_tmask(i,j,k)
+            endif !} ! } YZ
             cobalt%wc_vert_int_p(i,j) = cobalt%wc_vert_int_p(i,j) + &
               cobalt%tot_layer_int_p(i,j,k)*grid_tmask(i,j,k)
             cobalt%wc_vert_int_fe(i,j) = cobalt%wc_vert_int_fe(i,j) + & 
@@ -620,6 +664,11 @@ module COBALT_send_diag
             model_time, rmask = grid_tmask,is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
           used = g_send_data(cobalt%id_tot_layer_int_n,cobalt%tot_layer_int_n,&
             model_time, rmask = grid_tmask,is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
+          ! YZ: 15N, 25/11/2025 {
+          if (do_15n) then !{
+            used = g_send_data(cobalt%id_tot_layer_int_n_15n,cobalt%tot_layer_int_n_15n,&
+              model_time, rmask = grid_tmask,is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
+          endif !} ! } YZ
           used = g_send_data(cobalt%id_tot_layer_int_p,cobalt%tot_layer_int_p,&
             model_time, rmask = grid_tmask,is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
           used = g_send_data(cobalt%id_tot_layer_int_si,cobalt%tot_layer_int_si,&
@@ -640,6 +689,11 @@ module COBALT_send_diag
             model_time, rmask = grid_tmask(:,:,1),is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
           used = g_send_data(cobalt%id_wc_vert_int_n, cobalt%wc_vert_int_n, &
             model_time, rmask = grid_tmask(:,:,1),is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
+          ! YZ: 15N, 25/11/2025 {
+          if (do_15n) then !{
+            used = g_send_data(cobalt%id_wc_vert_int_n_15n, cobalt%wc_vert_int_n_15n, &
+              model_time, rmask = grid_tmask(:,:,1),is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
+          endif !} ! } YZ
           used = g_send_data(cobalt%id_wc_vert_int_p, cobalt%wc_vert_int_p, &
             model_time, rmask = grid_tmask(:,:,1),is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
           used = g_send_data(cobalt%id_wc_vert_int_fe, cobalt%wc_vert_int_fe, &
@@ -1019,6 +1073,14 @@ module COBALT_send_diag
             cobalt%p_ndet(:,:,:,tau) + cobalt%p_ndet_fast(:,:,:,tau) + cobalt%p_nsmz(:,:,:,tau) + & ! YZ: fast-sinking, 07/07/2025
             cobalt%p_nmdz(:,:,:,tau) + cobalt%p_nlgz(:,:,:,tau))*cobalt%Rho_0, &
             model_time, rmask = grid_tmask,is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
+          ! YZ: 15N, 25/11/2025 {
+          if (do_15n) then !{
+          used = g_send_data(cobalt%id_pon_15n, (cobalt%p_ndi_15n(:,:,:,tau) + cobalt%p_nlg_15n(:,:,:,tau) + &
+            cobalt%p_nmd_15n(:,:,:,tau) + cobalt%p_nsm_15n(:,:,:,tau) + cobalt%p_nbact_15n(:,:,:,tau) + &
+            cobalt%p_ndet_15n(:,:,:,tau) + cobalt%p_ndet_15n_fast(:,:,:,tau) + cobalt%p_nsmz_15n(:,:,:,tau) + &
+            cobalt%p_nmdz_15n(:,:,:,tau) + cobalt%p_nlgz_15n(:,:,:,tau))*cobalt%Rho_0, &
+            model_time, rmask = grid_tmask,is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
+          endif !} ! } YZ
           used = g_send_data(cobalt%id_pop, (cobalt%p_pdi(:,:,:,tau) + cobalt%p_plg(:,:,:,tau) + &
             cobalt%p_pmd(:,:,:,tau) + cobalt%p_psm(:,:,:,tau) + bact(1)%q_p_2_n*cobalt%p_nbact(:,:,:,tau) + &
             cobalt%p_pdet(:,:,:,tau) + cobalt%p_pdet_fast(:,:,:,tau) + zoo(1)%q_p_2_n * cobalt%p_nsmz(:,:,:,tau) + & ! YZ: fast-sinking, 07/07/2025
@@ -1034,6 +1096,12 @@ module COBALT_send_diag
           used = g_send_data(cobalt%id_phyn, (cobalt%p_nlg(:,:,:,tau) + cobalt%p_nmd(:,:,:,tau) +  &
             cobalt%p_nsm(:,:,:,tau) + cobalt%p_ndi(:,:,:,tau)) * cobalt%Rho_0, &
             model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
+          ! YZ: 15N, 25/11/2025 {
+          if (do_15n) then !{
+          used = g_send_data(cobalt%id_phyn_15n, (cobalt%p_nlg_15n(:,:,:,tau) + cobalt%p_nmd_15n(:,:,:,tau) +  &
+            cobalt%p_nsm_15n(:,:,:,tau) + cobalt%p_ndi_15n(:,:,:,tau)) * cobalt%Rho_0, &
+            model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
+          endif !} ! } YZ
           used = g_send_data(cobalt%id_phyp, (cobalt%p_pdi(:,:,:,tau) + cobalt%p_plg(:,:,:,tau) + &
             cobalt%p_pmd(:,:,:,tau) + cobalt%p_psm(:,:,:,tau))*cobalt%Rho_0, &
             model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
@@ -1079,6 +1147,15 @@ module COBALT_send_diag
             cobalt%p_nlg(:,:,:,tau)*phyto(LARGE)%vmove(:,:,:) + cobalt%p_ndi(:,:,:,tau)*phyto(DIAZO)%vmove(:,:,:)) * &
             cobalt%Rho_0*grid_tmask(:,:,:), model_time, rmask = grid_tmask, &
             is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
+          ! YZ: 15N, 25/11/2025 {
+          if (do_15n) then !{
+          used = g_send_data(cobalt%id_expn_15n_tp, (cobalt%p_ndet_15n(:,:,:,tau)*cobalt%wsink + &
+            cobalt%p_ndet_15n_fast(:,:,:,tau)*cobalt%wsink_fast + & 
+            cobalt%p_nsm_15n(:,:,:,tau)*phyto(SMALL)%vmove(:,:,:) + cobalt%p_nmd_15n(:,:,:,tau)*phyto(MEDIUM)%vmove(:,:,:) + &
+            cobalt%p_nlg_15n(:,:,:,tau)*phyto(LARGE)%vmove(:,:,:) + cobalt%p_ndi_15n(:,:,:,tau)*phyto(DIAZO)%vmove(:,:,:)) * &
+            cobalt%Rho_0*grid_tmask(:,:,:), model_time, rmask = grid_tmask, &
+            is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
+          endif !} ! } YZ
           used = g_send_data(cobalt%id_expp_tp, (cobalt%p_pdet(:,:,:,tau)*cobalt%wsink + &
             cobalt%p_pdet_fast(:,:,:,tau)*cobalt%wsink_fast + & ! YZ: fast-sinking, 07/07/2025
             cobalt%p_psm(:,:,:,tau)*phyto(SMALL)%vmove(:,:,:) + cobalt%p_pmd(:,:,:,tau)*phyto(MEDIUM)%vmove(:,:,:) + & 
@@ -1119,6 +1196,16 @@ module COBALT_send_diag
             cobalt%Rho_0*grid_tmask(:,:,:)
           used = g_send_data(cobalt%id_expn_i, flux_i, model_time, rmask = grid_tmask, &
             is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk+1)
+          ! YZ: 15N, 25/11/2025 {
+          if (do_15n) then !{
+          flux_i(:,:,2:nk+1) = (cobalt%p_ndet_15n(:,:,:,tau)*cobalt%wsink + &
+            cobalt%p_ndet_15n_fast(:,:,:,tau)*cobalt%wsink_fast + &
+            cobalt%p_nsm_15n(:,:,:,tau)*phyto(SMALL)%vmove(:,:,:) + cobalt%p_nmd_15n(:,:,:,tau)*phyto(MEDIUM)%vmove(:,:,:) + &
+            cobalt%p_nlg_15n(:,:,:,tau)*phyto(LARGE)%vmove(:,:,:) + cobalt%p_ndi_15n(:,:,:,tau)*phyto(DIAZO)%vmove(:,:,:)) * &
+            cobalt%Rho_0*grid_tmask(:,:,:)
+          used = g_send_data(cobalt%id_expn_15n_i, flux_i, model_time, rmask = grid_tmask, &
+            is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk+1)
+          endif !} ! } YZ
           flux_i(:,:,2:nk+1) = (cobalt%p_pdet(:,:,:,tau)*cobalt%wsink + &
             cobalt%p_pdet_fast(:,:,:,tau)*cobalt%wsink_fast + & ! YZ: fast-sinking, 07/07/2025
             cobalt%p_psm(:,:,:,tau)*phyto(SMALL)%vmove(:,:,:) + cobalt%p_pmd(:,:,:,tau)*phyto(MEDIUM)%vmove(:,:,:) + &
@@ -1497,6 +1584,11 @@ module COBALT_send_diag
               model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
             used = g_send_data(zoo(n)%id_jingest_n, zoo(n)%jingest_n, &
               model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
+            ! YZ: 15N, 25/11/2025 {
+            if (do_15n) then !{
+            used = g_send_data(zoo(n)%id_jingest_n_15n, zoo(n)%jingest_n_15n, &
+              model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
+            endif !} ! } YZ
             used = g_send_data(zoo(n)%id_jingest_p, zoo(n)%jingest_p, &
               model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
             used = g_send_data(zoo(n)%id_jingest_sio2, zoo(n)%jingest_sio2, &
@@ -1599,11 +1691,9 @@ module COBALT_send_diag
           ! YZ: fast-sinking, 07/07/2025 {
           used = g_send_data(cobalt%id_jremin_ndet_fast, cobalt%jremin_ndet_fast, &
             model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk) ! } YZ
-          
           ! YZ: amx, 08/07/2025 {
           used = g_send_data(cobalt%id_jremin_ndet_amx, cobalt%jremin_ndet_amx, &
             model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk) ! } YZ
-
           used = g_send_data(cobalt%id_jremin_pdet, cobalt%jremin_pdet, &
             model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
           ! YZ: fast-sinking, 07/07/2025 {
@@ -1650,6 +1740,28 @@ module COBALT_send_diag
             model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
           used = g_send_data(cobalt%id_jnamx, cobalt%jnamx, &
             model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
+          ! YZ: 15N, 25/11/2025 {
+          if (do_15n) then !{
+          used = g_send_data(cobalt%id_jprod_ndet_15n, cobalt%jprod_ndet_15n, &
+            model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
+          used = g_send_data(cobalt%id_jprod_ndet_15n_fast, cobalt%jprod_ndet_15n_fast, &
+            model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk) 
+          used = g_send_data(cobalt%id_jprod_srdon_15n, cobalt%jprod_srdon_15n, &
+            model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
+          used = g_send_data(cobalt%id_jprod_sldon_15n, cobalt%jprod_sldon_15n, &
+            model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
+          used = g_send_data(cobalt%id_jprod_ldon_15n, cobalt%jprod_ldon_15n, &
+            model_time, rmask = grid_tmask,is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
+          used = g_send_data(cobalt%id_jprod_nh4_15n, cobalt%jprod_nh4_15n, &
+            model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
+          used = g_send_data(cobalt%id_jprod_nh4_15n_plus_btm, cobalt%jprod_nh4_15n_plus_btm, &
+            model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
+          used = g_send_data(cobalt%id_jno3_15n_iceberg, cobalt%jno3_15n_iceberg, &
+            model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
+          used = g_send_data(cobalt%id_jno3_18o_iceberg, cobalt%jno3_18o_iceberg, &
+            model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)    
+          endif !} ! } YZ
+
           !
           ! Other general COBALT limitation and forcing terms
           !
@@ -1722,6 +1834,15 @@ module COBALT_send_diag
             model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc,ie_in=iec, je_in=jec)
           used = g_send_data(cobalt%id_cased_2d, cobalt%cased_2d, &
             model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc,ie_in=iec, je_in=jec)
+          ! YZ: 15N, 25/11/2025 {
+          if (do_15n) then !{
+          used = g_send_data(cobalt%id_b_nh4_15n, -cobalt%b_nh4_15n, &
+            model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
+          used = g_send_data(cobalt%id_b_no3_15n, -cobalt%b_no3_15n, &
+            model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
+          used = g_send_data(cobalt%id_b_no3_18o, -cobalt%b_no3_18o, &
+            model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
+          endif !} ! } YZ
           !
           ! Radiocarbon fields
           !
@@ -2023,6 +2144,47 @@ module COBALT_send_diag
           if (do_r2omip) then !{
             used = g_send_data(cobalt%id_jtsldon, cobalt%jtsldon, &
               model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
+          endif !} ! } YZ
+          ! YZ: 15N, 25/11/2025 {
+          if (do_15n) then !{
+          used = g_send_data(cobalt%id_jno3_15n, cobalt%jno3_15n, &
+            model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
+          used = g_send_data(cobalt%id_jno3_18o, cobalt%jno3_18o, &
+            model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
+          used = g_send_data(cobalt%id_jnh4_15n, cobalt%jnh4_15n, &
+            model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
+          used = g_send_data(cobalt%id_jndet_15n, cobalt%jndet_15n, &
+            model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
+          used = g_send_data(cobalt%id_jndet_15n_fast, cobalt%jndet_15n_fast, &
+            model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
+          used = g_send_data(cobalt%id_jnbact_15n, cobalt%jnbact_15n, &
+            model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
+          used = g_send_data(cobalt%id_jndi_15n, cobalt%jndi_15n, &
+            model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
+          used = g_send_data(cobalt%id_jnlg_15n, cobalt%jnlg_15n, &
+            model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
+          used = g_send_data(cobalt%id_jnmd_15n, cobalt%jnmd_15n, &
+            model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
+          used = g_send_data(cobalt%id_jnsm_15n, cobalt%jnsm_15n, &
+            model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
+          used = g_send_data(cobalt%id_jnsmz_15n, cobalt%jnsmz_15n, &
+            model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
+          used = g_send_data(cobalt%id_jnmdz_15n, cobalt%jnmdz_15n, &
+            model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
+          used = g_send_data(cobalt%id_jnlgz_15n, cobalt%jnlgz_15n, &
+            model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
+          used = g_send_data(cobalt%id_jldon_15n, cobalt%jldon_15n, &
+            model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
+          used = g_send_data(cobalt%id_jsldon_15n, cobalt%jsldon_15n, &
+            model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
+          used = g_send_data(cobalt%id_jsrdon_15n, cobalt%jsrdon_15n, &
+            model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
+          if (do_r2omip) then !{
+          used = g_send_data(cobalt%id_jtsldon_15n, cobalt%jtsldon_15n, &
+            model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
+          endif !}
+          used = g_send_data(cobalt%id_jnh4_plus_btm, cobalt%jnh4_plus_btm, &
+            model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
           endif !} ! } YZ
 
           !
