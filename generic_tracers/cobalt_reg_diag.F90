@@ -1903,7 +1903,7 @@ module COBALT_reg_diag
          init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
  
     vardesc_temp = vardesc("jsink_n2o_diag_nit","Consumption of diagnostic N2O from nitrification",'h','L','s','mol N2O kg-1 s-1','f')
-    cobalt%id_jprod_n2o_diag_nit = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
+    cobalt%id_jsink_n2o_diag_nit = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
          init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
  
     vardesc_temp = vardesc("jsink_n2o_diag_lowo2","Consumption of diagnostic N2O from low-oxygen pathway",'h','L','s','mol N2O kg-1 s-1','f')
