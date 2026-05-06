@@ -1560,6 +1560,11 @@ module COBALT_send_diag
             model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
           used = g_send_data(bact(1)%id_jprod_n, bact(1)%jprod_n, &
             model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
+          ! YZ: 15N, 22/04/2026 {
+          if (do_15n) then !{
+          used = g_send_data(bact(1)%id_jprod_n_15n, bact(1)%jprod_n_15n, &
+            model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk) 
+          endif !} !}YZ
           used = g_send_data(bact(1)%id_o2lim, bact(1)%o2lim, &
             model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
           used = g_send_data(bact(1)%id_ldonlim, bact(1)%ldonlim, &
@@ -1587,6 +1592,8 @@ module COBALT_send_diag
             ! YZ: 15N, 25/11/2025 {
             if (do_15n) then !{
             used = g_send_data(zoo(n)%id_jingest_n_15n, zoo(n)%jingest_n_15n, &
+              model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
+            used = g_send_data(zoo(n)%id_jdigest_n_15n, zoo(n)%jdigest_n_15n, &
               model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
             endif !} ! } YZ
             used = g_send_data(zoo(n)%id_jingest_p, zoo(n)%jingest_p, &
@@ -1625,6 +1632,11 @@ module COBALT_send_diag
               model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
             used = g_send_data(zoo(n)%id_jprod_n, zoo(n)%jprod_n, &
               model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
+            ! YZ: 15N, 22/04/2026 {
+            if (do_15n) then !{
+            used = g_send_data(zoo(n)%id_jprod_n_15n, zoo(n)%jprod_n_15n, &
+              model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk) 
+            endif !} !}YZ
             used = g_send_data(zoo(n)%id_o2lim, zoo(n)%o2lim, &
               model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
             used = g_send_data(zoo(n)%id_temp_lim, zoo(n)%temp_lim, &
@@ -2029,6 +2041,15 @@ module COBALT_send_diag
               model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
             used = g_send_data(zoo(n)%id_jprod_ndet_100, zoo(n)%jprod_ndet_100, &
               model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
+            ! YZ: 15N, 22/04/2026 {
+            if (do_15n) then !{
+            used = g_send_data(zoo(n)%id_jprod_n_15n_100, zoo(n)%jprod_n_15n_100, &
+              model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
+            used = g_send_data(zoo(n)%id_jingest_n_15n_100, zoo(n)%jingest_n_15n_100, &
+              model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
+            used = g_send_data(zoo(n)%id_jdigest_n_15n_100, zoo(n)%jdigest_n_15n_100, &
+              model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc, ie_in=iec, je_in=jec) 
+            endif !} !} YZ
           enddo !} n
           used = g_send_data(cobalt%id_jprod_mesozoo_200, cobalt%jprod_mesozoo_200, &
             model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
@@ -2039,11 +2060,24 @@ module COBALT_send_diag
             model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
           used = g_send_data(cobalt%id_hp_jprod_ndet_100, cobalt%hp_jprod_ndet_100, &
             model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
+          ! YZ: 15N, 22/04/2026 {
+          if (do_15n) then !{
+          used = g_send_data(cobalt%id_hp_jingest_n_15n_100, cobalt%hp_jingest_n_15n_100, &
+            model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
+          used = g_send_data(cobalt%id_hp_jdigest_n_15n_100, cobalt%hp_jdigest_n_15n_100, &
+            model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc, ie_in=iec, je_in=jec) 
+          endif !} !} YZ
+
           !
           ! Bacteria 100m flux integrals
           !
           used = g_send_data(bact(1)%id_jprod_n_100, bact(1)%jprod_n_100, &
             model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
+          ! YZ: 15N, 22/04/2026 {
+          if (do_15n) then !{
+          used = g_send_data(bact(1)%id_jprod_n_15n_100, bact(1)%jprod_n_15n_100, &
+            model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc, ie_in=iec, je_in=jec) 
+          endif !} !}YZ
           used = g_send_data(bact(1)%id_jzloss_n_100, bact(1)%jzloss_n_100, &
             model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
           used = g_send_data(bact(1)%id_jvirloss_n_100, bact(1)%jvirloss_n_100, &
@@ -2147,6 +2181,40 @@ module COBALT_send_diag
           endif !} ! } YZ
           ! YZ: 15N, 25/11/2025 {
           if (do_15n) then !{
+          used = g_send_data(cobalt%id_d15n_no3, cobalt%d15n_no3, &
+            model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
+          used = g_send_data(cobalt%id_d15n_nh4, cobalt%d15n_nh4, &
+            model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
+          used = g_send_data(cobalt%id_d15n_ndi, cobalt%d15n_ndi, &
+            model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
+          used = g_send_data(cobalt%id_d15n_nlg, cobalt%d15n_nlg, &
+            model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
+          used = g_send_data(cobalt%id_d15n_nmd, cobalt%d15n_nmd, &
+            model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
+          used = g_send_data(cobalt%id_d15n_nsm, cobalt%d15n_nsm, &
+            model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
+          used = g_send_data(cobalt%id_d15n_nsmz, cobalt%d15n_nsmz, &
+            model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
+          used = g_send_data(cobalt%id_d15n_nmdz, cobalt%d15n_nmdz, &
+            model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
+          used = g_send_data(cobalt%id_d15n_nlgz, cobalt%d15n_nlgz, &
+            model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
+          used = g_send_data(cobalt%id_d15n_ldon, cobalt%d15n_ldon, &
+            model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
+          used = g_send_data(cobalt%id_d15n_sldon, cobalt%d15n_sldon, &
+            model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
+          used = g_send_data(cobalt%id_d15n_srdon, cobalt%d15n_srdon, &
+            model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
+          used = g_send_data(cobalt%id_d15n_nbact, cobalt%d15n_nbact, &
+            model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
+          used = g_send_data(cobalt%id_d15n_ndet, cobalt%d15n_ndet, &
+            model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
+          used = g_send_data(cobalt%id_d15n_ndet_fast, cobalt%d15n_ndet_fast, &
+            model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
+          used = g_send_data(cobalt%id_d18o_no3, cobalt%d18o_no3, &
+            model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
+          used = g_send_data(cobalt%id_d15n_tsldon, cobalt%d15n_tsldon, &
+            model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
           used = g_send_data(cobalt%id_jno3_15n, cobalt%jno3_15n, &
             model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
           used = g_send_data(cobalt%id_jno3_18o, cobalt%jno3_18o, &

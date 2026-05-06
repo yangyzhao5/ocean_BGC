@@ -106,11 +106,12 @@
 !       tracers are considered as 15N+14N and newly added tracers are 15N, thus f15n is introduced as their
 !       ratio to calculate 15N fluxes. The isotopic fractionation for one-input-one-output irreversible process
 !       is assumed to be alpha15n * f15n * flux, since the denomintor (1.0 - f15n * (1.0 - alpha15n)) ~ 1.0.
-!       For one-input-two-outputs processes, such as zooplankton ingestion for egestion and digestion, zooplankton
-!       digestion for respiration and growth, higher predator ingestion for respiration and excretion, and 
-!       ndet deposition for burial and aerobic/anaerobic remineralization, the calculation of isotopic fractionation
+!       For one-input-two-output processes, such as bacterial uptake of ldon for growth and respiration, 
+!       zooplankton ingestion for egestion and digestion, zooplankton digestion for respiration and growth, and
+!       higher predator ingestion for respiration and excretion, and the calculation of isotopic fractionation
 !       is based on mass balance of N balance and 15N balance, but using approximation of delta15n for 15N balance.
-!       More detailed description of this 15N module to be done.
+!       This implementation follows the implementation of 15N in COBALTv2 for Tanya Marshall's Double-Gyre model
+!       configuration.
 !
 !       17 newly added prognostic tracers:
 !       ldon_15n: labile dissolved organic nitrogen labelled 15N
@@ -1865,9 +1866,12 @@ contains
     ! Dähnke, K., and B. Thamdrup (2013). Nitrogen isotope dynamics and fractionation during sedimentary denitrification 
     !     in Boknis Eck, Baltic Sea. Biogeosciences, 10(5), 3079-3088. 
     !
+    call get_param(param_file, "generic_COBALT", "r15n_ref", cobalt%r15n_ref, &
+                   "ratio of 15N/14N in isotopic reference material (atmospheric air N2)", units="dimensionless", &
+                   default= 3.6765e-3)  ! f15n_ref = 0.003663, 15N/14N = 0.0036765, from Sigman and Fripiat (2019) Nitrogen isotopes in the ocean
     call get_param(param_file, "generic_COBALT", "r15n_atm", cobalt%r15n_atm, &
-                   "ratio of 15N/14N in atmospheric N2 (isotopic reference material)", units="dimensionless", &
-                   default= 3.6765e-3)  ! f15n_atm = 0.003663, 15N/14N = 0.0036765
+                   "ratio of 15N/14N in atmospheric N2 (endmember for N2 fixation)", units="dimensionless", &
+                   default= 3.6728e-3)  ! delta15n_atm = -1.0 permil, 15N/14N = 0.0036728
     call get_param(param_file, "generic_COBALT", "r15n_iceberg", cobalt%r15n_iceberg, &
                    "ratio of 15N/14N in nitrate from iceberg", units="dimensionless", &
                    default= 3.6728e-3)  ! d15n_iceberg = -1.0 before 1950, 15N/14N = 0.0036728  
@@ -1907,6 +1911,9 @@ contains
     call get_param(param_file, "generic_COBALT", "alpha15n_zoo_digest", cobalt%alpha15n_zoo_digest, &
                    "fractionation factor during zoo digestion", units="dimensionless", &
                    default= 0.998)
+    call get_param(param_file, "generic_COBALT", "alpha15n_hp_ingest", cobalt%alpha15n_hp_ingest, &
+                   "fractionation factor during higher predator ingestion", units="dimensionless", &
+                   default= 1.0)
     call get_param(param_file, "generic_COBALT", "alpha15n_nofrac", cobalt%alpha15n_nofrac, &
                    "fractionation factor for non-fractionation processes", units="dimensionless", &
                    default= 1.0)
@@ -1926,6 +1933,15 @@ contains
     call get_param(param_file, "generic_COBALT", "r18o_iceberg", cobalt%r18o_iceberg, &
                    "ratio of 18O to 16O in nitrate from iceberg", units="unitless", &
                    default= 2.1456e-3) ! d18o = +60 ~ +80, 18O/16O = 0.0021456
+    call get_param(param_file, "generic_COBALT", "alpha18o_uptake_no3", cobalt%alpha18o_uptake_no3, &
+                   "fractionation factor during phytoplankton uptake of no3", units="dimensionless", &
+                   default= 1.0)
+    call get_param(param_file, "generic_COBALT", "alpha18o_denit_wc", cobalt%alpha18o_denit_wc, &
+                   "fractionation factor during water column denitrification", units="dimensionless", &
+                   default= 1.0)
+    call get_param(param_file, "generic_COBALT", "alpha18o_denit_sed", cobalt%alpha18o_denit_sed, &
+                   "fractionation factor during sedimentary denitrification", units="dimensionless", &
+                   default= 1.0)
     ! } YZ
     !
     !-----------------------------------------------------------------------
@@ -3163,116 +3179,6 @@ contains
          units      = 'dimensionless',         &
          prog       = .false.              )
 
-     ! YZ: 15N, 25/11/2025 {
-     ! 
-     ! add delta15 for tracers labelled 15N
-     !
-     if (do_15n) then !{
-     call g_tracer_add(tracer_list,package_name,&
-         name       = 'd15n_nbact',             &
-         longname   = 'delta15 of bacterial',   &
-         units      = 'dimensionless',          &
-         prog       = .false.              )
-
-     call g_tracer_add(tracer_list,package_name,&
-         name       = 'd15n_ndet',             &
-         longname   = 'delta15 of detritus nitrogen',   &
-         units      = 'dimensionless',          &
-         prog       = .false.              )
-
-     call g_tracer_add(tracer_list,package_name,&
-         name       = 'd15n_ndet_fast',             &
-         longname   = 'delta15 of fast sinking detrital nitrogen',   &
-         units      = 'dimensionless',          &
-         prog       = .false.              )
-
-     call g_tracer_add(tracer_list,package_name,&
-         name       = 'd15n_ndi',             &
-         longname   = 'delta15 of diazotroph nitrogen',   &
-         units      = 'dimensionless',          &
-         prog       = .false.              )
-
-     call g_tracer_add(tracer_list,package_name,&
-         name       = 'd15n_nlg',             &
-         longname   = 'delta15 of large phytoplankton nitrogen',   &
-         units      = 'dimensionless',          &
-         prog       = .false.              )
-
-     call g_tracer_add(tracer_list,package_name,&
-         name       = 'd15n_nmd',             &
-         longname   = 'delta15 of medium phytoplankton nitrogen',   &
-         units      = 'dimensionless',          &
-         prog       = .false.              )
-
-     call g_tracer_add(tracer_list,package_name,&
-         name       = 'd15n_nsm',             &
-         longname   = 'delta15 of small phytoplankton nitrogen',   &
-         units      = 'dimensionless',          &
-         prog       = .false.              )
-
-     call g_tracer_add(tracer_list,package_name,&
-         name       = 'd15n_nh4',             &
-         longname   = 'delta15 of ammonium',   &
-         units      = 'dimensionless',          &
-         prog       = .false.              )
-
-     call g_tracer_add(tracer_list,package_name,&
-         name       = 'd15n_no3',             &
-         longname   = 'delta15 of nitrate',   &
-         units      = 'dimensionless',          &
-         prog       = .false.              )
-
-     call g_tracer_add(tracer_list,package_name,&
-         name       = 'd15n_ldon',             &
-         longname   = 'delta15 of labile DON',   &
-         units      = 'dimensionless',          &
-         prog       = .false.              )
-
-     call g_tracer_add(tracer_list,package_name,&
-         name       = 'd15n_sldon',             &
-         longname   = 'delta15 of semi-labile DON',   &
-         units      = 'dimensionless',          &
-         prog       = .false.              )
-
-     call g_tracer_add(tracer_list,package_name,&
-         name       = 'd15n_srdon',             &
-         longname   = 'delta15 of semi-refractory DON',   &
-         units      = 'dimensionless',          &
-         prog       = .false.              )
-
-     if (do_r2omip) then !{
-     call g_tracer_add(tracer_list,package_name,&
-         name       = 'd15n_tsldon',             &
-         longname   = 'delta15 of terrestrial semi-labile DON',   &
-         units      = 'dimensionless',          &
-         prog       = .false.              )
-     endif !}
-
-     call g_tracer_add(tracer_list,package_name,&
-         name       = 'd15n_nsmz',             &
-         longname   = 'delta15 of small zooplankton nitrogen',   &
-         units      = 'dimensionless',          &
-         prog       = .false.              )
-
-     call g_tracer_add(tracer_list,package_name,&
-         name       = 'd15n_nmdz',             &
-         longname   = 'delta15 of medium zooplankton nitrogen',   &
-         units      = 'dimensionless',          &
-         prog       = .false.              )
-
-     call g_tracer_add(tracer_list,package_name,&
-         name       = 'd15n_nlgz',             &
-         longname   = 'delta15 of large zooplankton nitrogen',   &
-         units      = 'dimensionless',          &
-         prog       = .false.              )
-
-     call g_tracer_add(tracer_list,package_name,&
-         name       = 'd18o_no3',             &
-         longname   = 'delta18 of nitrate',   &
-         units      = 'dimensionless',          &
-         prog       = .false.              )
-     endif !} ! } YZ
-
   end subroutine user_add_tracers
 
 
@@ -3841,7 +3747,7 @@ contains
     real,dimension(1:NUM_PREY) :: prey_vec,prey_p2n_vec,prey_fe2n_vec,prey_si2n_vec
     real,dimension(1:NUM_ZOO)  :: tot_prey
     real :: a_theta, diff_theta2, diff_theta2_tol
-    real :: tot_prey_hp, sw_fac_denom, assim_eff, growth_eff, burial_eff ! YZ: 15N, 25/11/2025
+    real :: tot_prey_hp, sw_fac_denom, assim_eff, growth_eff ! YZ: 15N, 25/11/2025
     real :: bact_uptake_ratio, vmax_bact, growth_ratio, food1, food2
     real :: fpoc_btm, log10_fpoc_btm
     real :: fe_salt
@@ -4696,14 +4602,10 @@ contains
        enddo !} n
 
        ! YZ: 15N, 25/11/2025 {
-       ! only calculate production of nh4 and/or ldon for 15N
+       ! If growth is negative, results in labile dissolved organic production whether or not oxygen is above minimum threshold.
        if (do_15n) then !{
           do n = 1, NUM_PHYTO !{
-             if (cobalt%f_o2(i,j,k) .gt. cobalt%o2_min) then !}
-                cobalt%jprod_nh4_15n(i,j,k) = cobalt%jprod_nh4_15n(i,j,k) - min(0.0,phyto(n)%mu(i,j,k)*phyto(n)%f_n_15n(i,j,k))
-             else
-                cobalt%jprod_ldon_15n(i,j,k) = cobalt%jprod_ldon_15n(i,j,k) - min(0.0,phyto(n)%mu(i,j,k)*phyto(n)%f_n_15n(i,j,k))
-             end if !}
+             cobalt%jprod_ldon_15n(i,j,k) = cobalt%jprod_ldon_15n(i,j,k) - min(0.0,phyto(n)%mu(i,j,k)*phyto(n)%f_n_15n(i,j,k))
           enddo !}
        end if !} ! } YZ
     enddo;  enddo ; enddo !} i,j,k
@@ -4910,17 +4812,22 @@ contains
              ! calculate the growth efficiency that is the fraction of ldon uptake for bacteria growth
              growth_eff = bact(1)%jprod_n(i,j,k) / (bact(1)%juptake_ldon(i,j,k) + epsln)
              ! calculate the ratio of 15N/14N of ldon uptake
-             bact(1)%r15n_uptake_ldon(i,j,k) = f15n_ldon(i,j,k)/(1.0 - f15n_ldon(i,j,k)) * cobalt%alpha15n_uptake_ldon
+             bact(1)%r15n_uptake_ldon(i,j,k) = f15n_ldon(i,j,k) * cobalt%alpha15n_uptake_ldon / &
+                     (1.0 - f15n_ldon(i,j,k) * cobalt%alpha15n_uptake_ldon)
              ! calculate the ratio of 15N/14N of respiration
-             bact(1)%r15n_resp(i,j,k) = bact(1)%r15n_uptake_ldon(i,j,k) * cobalt%alpha15n_remin / &
-                     (growth_eff * cobalt%alpha15n_nofrac + (1.0 - growth_eff) * cobalt%alpha15n_remin)
+             ! based on the 1I2O model,
+             !   delta15n_resp = delta15n_uptake_ldon + growth_eff * (epsilon_growth - epsilon_resp)
+             ! substitute delta15n=(r15n/r15n_ref-1)*1000 and epsilon=(1-alpha15n)*1000, we get
+             !   r15n_resp = r15n_uptake_ldon + growth_eff * (alpha15n_resp - alpha15n_growth) * r15n_ref
+             bact(1)%r15n_resp(i,j,k) = bact(1)%r15n_uptake_ldon(i,j,k) + cobalt%r15n_ref * &
+                     growth_eff * (cobalt%alpha15n_remin - cobalt%alpha15n_nofrac)
              bact(1)%f15n_resp(i,j,k) = bact(1)%r15n_resp(i,j,k) / (bact(1)%r15n_resp(i,j,k) + 1.0)
-             ! calculate the ratio of 15N/14N of growth
-             bact(1)%r15n_growth(i,j,k) = bact(1)%r15n_uptake_ldon(i,j,k) * cobalt%alpha15n_nofrac / &
-                     (growth_eff * cobalt%alpha15n_nofrac + (1.0 - growth_eff) * cobalt%alpha15n_remin)
-             bact(1)%f15n_growth(i,j,k) = bact(1)%r15n_growth(i,j,k) / (bact(1)%r15n_growth(i,j,k) + 1.0)
+             ! calculate 15N of bacterial growth
+             bact(1)%jprod_n_15n(i,j,k) = bact(1)%juptake_ldon(i,j,k) * f15n_ldon(i,j,k) * cobalt%alpha15n_uptake_ldon - &
+                     bact(1)%jprod_nh4(i,j,k) * bact(1)%f15n_resp(i,j,k)
           else
              bact(1)%f15n_resp(i,j,k) = f15n_ldon(i,j,k) * cobalt%alpha15n_uptake_ldon
+             bact(1)%jprod_n_15n(i,j,k) = min(bact(1)%jprod_n(i,j,k), 0.0) * f15n_nbact(i,j,k)
           endif !}
 
           ! calculate nh4_15n produced through bacteria
@@ -5136,8 +5043,8 @@ contains
        zoo(m)%jingest_sio2(i,j,k) = ingest_matrix(m,3)*prey_si2n_vec(3)
        ! YZ: 15N, 25/11/2025 {
        if (do_15n) then !{
-          zoo(m)%jingest_n_15n(i,j,k) = f15n_nmd(i,j,k) * ingest_matrix(m,3) + f15n_nsm(i,j,k) * ingest_matrix(m,4) + &
-                                        f15n_nbact(i,j,k) * ingest_matrix(m,5)
+          zoo(m)%jingest_n_15n(i,j,k) = (f15n_nmd(i,j,k) * ingest_matrix(m,3) + f15n_nsm(i,j,k) * ingest_matrix(m,4) + &
+                                         f15n_nbact(i,j,k) * ingest_matrix(m,5)) * cobalt%alpha15n_zoo_ingest
        endif !} ! } YZ
 
        ! Medium zooplankton (m = 2) consuming diazotrophs (1), large phytoplankton (2), medium phytoplankton (3),
@@ -5195,9 +5102,9 @@ contains
                                     ingest_matrix(m,3)*prey_si2n_vec(3)
        ! YZ: 15N, 25/11/2025 {
        if (do_15n) then !{
-          zoo(m)%jingest_n_15n(i,j,k) = f15n_ndi(i,j,k) * ingest_matrix(m,1) + f15n_nlg(i,j,k) * ingest_matrix(m,2) + &
-                                        f15n_nmd(i,j,k) * ingest_matrix(m,3) + f15n_nsm(i,j,k) * ingest_matrix(m,4) + &
-                                        f15n_nsmz(i,j,k) * ingest_matrix(m,6)
+          zoo(m)%jingest_n_15n(i,j,k) = (f15n_ndi(i,j,k) * ingest_matrix(m,1) + f15n_nlg(i,j,k) * ingest_matrix(m,2) + &
+                                         f15n_nmd(i,j,k) * ingest_matrix(m,3) + f15n_nsm(i,j,k) * ingest_matrix(m,4) + &
+                                         f15n_nsmz(i,j,k) * ingest_matrix(m,6)) * cobalt%alpha15n_zoo_ingest
        endif !} ! } YZ
 
        ! Large zooplankton (m = 3) consuming diazotrophs (1), large phytoplankton (2), medium pytoplankton (3),
@@ -5244,8 +5151,9 @@ contains
                                     ingest_matrix(m,3)*prey_si2n_vec(3)
        ! YZ: 15N, 25/11/2025 {
        if (do_15n) then !{
-          zoo(m)%jingest_n_15n(i,j,k) = f15n_ndi(i,j,k) * ingest_matrix(m,1) + f15n_nlg(i,j,k) * ingest_matrix(m,2) + &
-                                        f15n_nmd(i,j,k) * ingest_matrix(m,3) + f15n_nmdz(i,j,k) * ingest_matrix(m,7)
+          zoo(m)%jingest_n_15n(i,j,k) = (f15n_ndi(i,j,k) * ingest_matrix(m,1) + f15n_nlg(i,j,k) * ingest_matrix(m,2) + &
+                                         f15n_nmd(i,j,k) * ingest_matrix(m,3) + f15n_nmdz(i,j,k) * ingest_matrix(m,7)) * &
+                                         cobalt%alpha15n_zoo_ingest
        endif !} ! } YZ
 
        ! calculate the total filter feeding by medium and large zooplankton.  This rate is ultimately used to
@@ -5330,7 +5238,8 @@ contains
                                     hp_ingest_vec(8)*prey_p2n_vec(8)
        ! YZ; 15N, 25/11/2025 {
        if (do_15n) then !{
-          cobalt%hp_jingest_n_15n(i,j,k) = f15n_nmdz(i,j,k) * hp_ingest_vec(7) + f15n_nlgz(i,j,k) * hp_ingest_vec(8)
+          cobalt%hp_jingest_n_15n(i,j,k) = (f15n_nmdz(i,j,k) * hp_ingest_vec(7) + f15n_nlgz(i,j,k) * hp_ingest_vec(8)) * &
+                                           cobalt%alpha15n_hp_ingest
        endif !} ! } YZ
 
        !
@@ -5518,16 +5427,19 @@ contains
               ! calculate the assimilation efficiency
               assim_eff = 1.0 - zoo(m)%phi_det - zoo(m)%phi_ldon - zoo(m)%phi_sldon - zoo(m)%phi_srdon
               ! calculate the ratio of 15N/14N for ingestion
-              zoo(m)%r15n_ingest(i,j,k) = zoo(m)%jingest_n_15n(i,j,k) / (zoo(m)%jingest_n(i,j,k) - &
-                      zoo(m)%jingest_n_15n(i,j,k) + epsln) 
-              ! calculate the ratio of 15N/14N for digestion
-              zoo(m)%r15n_digest(i,j,k) = cobalt%alpha15n_zoo_digest * zoo(m)%r15n_ingest(i,j,k) / &
-                      (assim_eff * cobalt%alpha15n_zoo_digest + (1.0 - assim_eff) * cobalt%alpha15n_zoo_egest)
-              zoo(m)%f15n_digest(i,j,k) = zoo(m)%r15n_digest(i,j,k) / (zoo(m)%r15n_digest(i,j,k) + 1.0)
-              ! calculate the rato of 15N/14N for egestion
-              zoo(m)%r15n_egest(i,j,k) = cobalt%alpha15n_zoo_egest * zoo(m)%r15n_ingest(i,j,k) / &
-                      (assim_eff * cobalt%alpha15n_zoo_digest + (1.0 - assim_eff) * cobalt%alpha15n_zoo_egest)
+              ! zoo(m)%jingest_n_15n has already included cobalt%alpha15n_zoo_ingest
+              zoo(m)%r15n_ingest(i,j,k) = zoo(m)%jingest_n_15n(i,j,k) / & 
+                      (zoo(m)%jingest_n(i,j,k) - zoo(m)%jingest_n_15n(i,j,k) + epsln) 
+              ! calculate the ratio of 15N/14N for egestion
+              zoo(m)%r15n_egest(i,j,k) = zoo(m)%r15n_ingest(i,j,k) + cobalt%r15n_ref * &
+                      assim_eff * (cobalt%alpha15n_zoo_egest - cobalt%alpha15n_zoo_digest) 
               zoo(m)%f15n_egest(i,j,k) = zoo(m)%r15n_egest(i,j,k) / (zoo(m)%r15n_egest(i,j,k) + 1.0)
+              ! calculate 15N of zooplankton digestion
+              zoo(m)%jdigest_n_15n(i,j,k) = zoo(m)%jingest_n_15n(i,j,k) - &
+                      (1.0 - assim_eff) * zoo(m)%jingest_n(i,j,k) * zoo(m)%f15n_egest(i,j,k)
+              ! calculate the ratio of 15N/14N of zooplankton digestion
+              zoo(m)%r15n_digest(i,j,k) = zoo(m)%jdigest_n_15n(i,j,k) / &
+                      (assim_eff * zoo(m)%jingest_n(i,j,k) - zoo(m)%jdigest_n_15n(i,j,k) + epsln)
            endif !} ! } YZ
 
            ! calculate detritus and dissolved organic production for each zooplankton group
@@ -5574,16 +5486,16 @@ contains
        !
        if (do_15n) then !{
           ! calculate the ratio of 15N/14N of higher predator ingestion
-          cobalt%r15n_hp_ingest(i,j,k) = cobalt%hp_jingest_n_15n(i,j,k) / (cobalt%hp_jingest_n(i,j,k) - &
-                  cobalt%hp_jingest_n_15n(i,j,k) + epsln)
+          ! cobalt%hp_jingest_n_15n has already included cobalt%alpha15n_hp_ingest
+          cobalt%r15n_hp_ingest(i,j,k) = cobalt%hp_jingest_n_15n(i,j,k) / &
+                  (cobalt%hp_jingest_n(i,j,k) - cobalt%hp_jingest_n_15n(i,j,k) + epsln)
           ! calculate the ratio of 15N/14N of higher predator egestion
-          cobalt%r15n_hp_egest(i,j,k) = cobalt%alpha15n_nofrac * cobalt%r15n_hp_ingest(i,j,k) / &
-                  ((1.0 - cobalt%hp_phi_det) * cobalt%alpha15n_remin + cobalt%hp_phi_det * cobalt%alpha15n_nofrac)
+          cobalt%r15n_hp_egest(i,j,k) = cobalt%r15n_hp_ingest(i,j,k) + cobalt%r15n_ref * &
+                  (1.0 - cobalt%hp_phi_det) * (cobalt%alpha15n_nofrac - cobalt%alpha15n_remin)
           cobalt%f15n_hp_egest(i,j,k) = cobalt%r15n_hp_egest(i,j,k) / (cobalt%r15n_hp_egest(i,j,k) + 1.0)
-          ! calculate the ratio of 15N/14N of higher predator digestion (for respiration, i.e., remineralization)
-          cobalt%r15n_hp_digest(i,j,k) = cobalt%alpha15n_remin * cobalt%r15n_hp_ingest(i,j,k) / &
-                  ((1.0 - cobalt%hp_phi_det) * cobalt%alpha15n_remin + cobalt%hp_phi_det * cobalt%alpha15n_nofrac)
-          cobalt%f15n_hp_digest(i,j,k) = cobalt%r15n_hp_digest(i,j,k) / (cobalt%r15n_hp_digest(i,j,k) + 1.0)
+          ! calculate 15N of higher predator digestion (for respiration, i.e., remineralization)
+          cobalt%hp_jdigest_n_15n(i,j,k) = cobalt%hp_jingest_n_15n(i,j,k) - &
+                  cobalt%hp_phi_det * cobalt%hp_jingest_n(i,j,k) * cobalt%f15n_hp_egest(i,j,k)
        endif !} ! } YZ
        
        ! YZ: fast-sinking, 07/07/2025 {
@@ -5625,10 +5537,10 @@ contains
        ! YZ: 15N, 25/11/2025 {
        if (do_15n) then !{
            cobalt%jprod_ndet_15n(i,j,k) = cobalt%jprod_ndet_15n(i,j,k) + &
-                   phyto(DIAZO)%jaggloss_n(i,j,k) * f15n_ndi(i,j,k) + &
-                   phyto(LARGE)%jaggloss_n(i,j,k) * f15n_nlg(i,j,k) + &
-                   phyto(MEDIUM)%jaggloss_n(i,j,k) * f15n_nmd(i,j,k) + &
-                   phyto(SMALL)%jaggloss_n(i,j,k) * f15n_nsm(i,j,k)
+                   (phyto(DIAZO)%jaggloss_n(i,j,k) * f15n_ndi(i,j,k) + &
+                    phyto(LARGE)%jaggloss_n(i,j,k) * f15n_nlg(i,j,k) + &
+                    phyto(MEDIUM)%jaggloss_n(i,j,k) * f15n_nmd(i,j,k) + &
+                    phyto(SMALL)%jaggloss_n(i,j,k) * f15n_nsm(i,j,k)) * cobalt%alpha15n_nofrac
        endif !} ! } YZ
 
        ! Dissolved organic and inorganic production from viral lysis, exudation, and phytoplankton mortality
@@ -5658,19 +5570,23 @@ contains
                    ((phyto(DIAZO)%jvirloss_n(i,j,k) + phyto(DIAZO)%jmortloss_n(i,j,k)) * f15n_ndi(i,j,k) + &
                     (phyto(LARGE)%jvirloss_n(i,j,k) + phyto(LARGE)%jmortloss_n(i,j,k)) * f15n_nlg(i,j,k) + &
                     (phyto(MEDIUM)%jvirloss_n(i,j,k)+ phyto(MEDIUM)%jmortloss_n(i,j,k))* f15n_nmd(i,j,k) + &
-                    (phyto(SMALL)%jvirloss_n(i,j,k) + phyto(SMALL)%jmortloss_n(i,j,k)) * f15n_nsm(i,j,k)) + &
-                   phyto(DIAZO)%jexuloss_n(i,j,k) * f15n_ndi(i,j,k) + phyto(LARGE)%jexuloss_n(i,j,k) * f15n_nlg(i,j,k) + &
-                   phyto(MEDIUM)%jexuloss_n(i,j,k) * f15n_nmd(i,j,k) + phyto(SMALL)%jexuloss_n(i,j,k) * f15n_nsm(i,j,k) 
+                    (phyto(SMALL)%jvirloss_n(i,j,k) + phyto(SMALL)%jmortloss_n(i,j,k)) * f15n_nsm(i,j,k)) * &
+                    cobalt%alpha15n_nofrac + &
+                   (phyto(DIAZO)%jexuloss_n(i,j,k) * f15n_ndi(i,j,k) + phyto(LARGE)%jexuloss_n(i,j,k) * f15n_nlg(i,j,k) + &
+                    phyto(MEDIUM)%jexuloss_n(i,j,k) * f15n_nmd(i,j,k) + phyto(SMALL)%jexuloss_n(i,j,k) * f15n_nsm(i,j,k)) * &
+                   cobalt%alpha15n_nofrac 
            cobalt%jprod_sldon_15n(i,j,k) = cobalt%jprod_sldon_15n(i,j,k) + cobalt%lysis_phi_sldon * &
                    ((phyto(DIAZO)%jvirloss_n(i,j,k) + phyto(DIAZO)%jmortloss_n(i,j,k)) * f15n_ndi(i,j,k) + &
                     (phyto(LARGE)%jvirloss_n(i,j,k) + phyto(LARGE)%jmortloss_n(i,j,k)) * f15n_nlg(i,j,k) + &
                     (phyto(MEDIUM)%jvirloss_n(i,j,k)+ phyto(MEDIUM)%jmortloss_n(i,j,k))* f15n_nmd(i,j,k) + &
-                    (phyto(SMALL)%jvirloss_n(i,j,k) + phyto(SMALL)%jmortloss_n(i,j,k)) * f15n_nsm(i,j,k))
+                    (phyto(SMALL)%jvirloss_n(i,j,k) + phyto(SMALL)%jmortloss_n(i,j,k)) * f15n_nsm(i,j,k)) * &
+                    cobalt%alpha15n_nofrac
            cobalt%jprod_srdon_15n(i,j,k) = cobalt%jprod_srdon_15n(i,j,k) + cobalt%lysis_phi_srdon * &
                    ((phyto(DIAZO)%jvirloss_n(i,j,k) + phyto(DIAZO)%jmortloss_n(i,j,k)) * f15n_ndi(i,j,k) + &
                     (phyto(LARGE)%jvirloss_n(i,j,k) + phyto(LARGE)%jmortloss_n(i,j,k)) * f15n_nlg(i,j,k) + &
                     (phyto(MEDIUM)%jvirloss_n(i,j,k)+ phyto(MEDIUM)%jmortloss_n(i,j,k))* f15n_nmd(i,j,k) + &
-                    (phyto(SMALL)%jvirloss_n(i,j,k) + phyto(SMALL)%jmortloss_n(i,j,k)) * f15n_nsm(i,j,k))
+                    (phyto(SMALL)%jvirloss_n(i,j,k) + phyto(SMALL)%jmortloss_n(i,j,k)) * f15n_nsm(i,j,k)) * &
+                    cobalt%alpha15n_nofrac
        endif !} ! } YZ
 
        ! Sources of dissolved organic material from viral lysis due to bacteria
@@ -5683,11 +5599,11 @@ contains
        ! YZ: 15N, 25/11/2025 {
        if (do_15n) then !{
            cobalt%jprod_ldon_15n(i,j,k) = cobalt%jprod_ldon_15n(i,j,k) + cobalt%lysis_phi_ldon* &
-                   bact(1)%jvirloss_n(i,j,k)*f15n_nbact(i,j,k)
+                   bact(1)%jvirloss_n(i,j,k)*f15n_nbact(i,j,k)*cobalt%alpha15n_nofrac
            cobalt%jprod_sldon_15n(i,j,k) = cobalt%jprod_sldon_15n(i,j,k) + cobalt%lysis_phi_sldon* &
-                   bact(1)%jvirloss_n(i,j,k)*f15n_nbact(i,j,k)
+                   bact(1)%jvirloss_n(i,j,k)*f15n_nbact(i,j,k)*cobalt%alpha15n_nofrac
            cobalt%jprod_srdon_15n(i,j,k) = cobalt%jprod_srdon_15n(i,j,k) + cobalt%lysis_phi_srdon* &
-                   bact(1)%jvirloss_n(i,j,k)*f15n_nbact(i,j,k)
+                   bact(1)%jvirloss_n(i,j,k)*f15n_nbact(i,j,k)*cobalt%alpha15n_nofrac
        endif !} ! } YZ
 
        ! When bacterial production is negative, send it to dissolved organic material assuming the partitioning
@@ -5791,18 +5707,16 @@ contains
                  ! calculate growth efficiency
                  growth_eff = zoo(m)%jprod_n(i,j,k) / (zoo(m)%jingest_n(i,j,k) * assim_eff + epsln)
                  ! calculate the ratio of 15N/14N of zooplankton respiration/remineralization
-                 zoo(m)%r15n_resp(i,j,k) = cobalt%alpha15n_remin * zoo(m)%r15n_digest(i,j,k) / &
-                         (growth_eff * cobalt%alpha15n_nofrac + (1.0 - growth_eff) * cobalt%alpha15n_remin)
+                 zoo(m)%r15n_resp(i,j,k) = zoo(m)%r15n_digest(i,j,k) + cobalt%r15n_ref * &
+                         growth_eff * (cobalt%alpha15n_remin - cobalt%alpha15n_nofrac)
                  zoo(m)%f15n_resp(i,j,k) = zoo(m)%r15n_resp(i,j,k) / (zoo(m)%r15n_resp(i,j,k) + 1.0)
-                 ! calculate the ratio of 15N/14N of zooplankton growth
-                 zoo(m)%r15n_growth(i,j,k) = cobalt%alpha15n_nofrac * zoo(m)%r15n_digest(i,j,k) / &
-                         (growth_eff * cobalt%alpha15n_nofrac + (1.0 - growth_eff) * cobalt%alpha15n_remin)
-                 zoo(m)%f15n_growth(i,j,k) = zoo(m)%r15n_growth(i,j,k) / (zoo(m)%r15n_growth(i,j,k) + 1.0)
-                 
-                 ! add assimilated 15n that goes for growth
-                 zoo(m)%jprod_n_15n(i,j,k) = zoo(m)%jprod_n(i,j,k) * zoo(m)%f15n_growth(i,j,k)
+                 ! calculate 15N of zooplankton growth
+                 zoo(m)%jprod_n_15n(i,j,k) = zoo(m)%jdigest_n_15n(i,j,k) - &
+                         (zoo(m)%jingest_n(i,j,k) * assim_eff - zoo(m)%jprod_n(i,j,k)) * zoo(m)%f15n_resp(i,j,k)
               else
-                 zoo(m)%f15n_resp(i,j,k) = zoo(m)%f15n_digest(i,j,k)
+                 zoo(m)%f15n_resp(i,j,k) = zoo(m)%r15n_digest(i,j,k)/(zoo(m)%r15n_digest(i,j,k) + 1.0)
+                 ! address the negative production during source-sink calculation later
+                 zoo(m)%jprod_n_15n(i,j,k) = 0.0
               endif !}    
 
               ! add respiration-associated excretion to the cumulative production of inorganic nutrients
@@ -5827,8 +5741,8 @@ contains
        ! YZ: 15N, 25/11/2025 {
        ! added to ndet pool
        if (do_15n) then !{
-          cobalt%jprod_ndet_15n(i,j,k) = cobalt%jprod_ndet_15n(i,j,k) + min(0.0, zoo(1)%jprod_n(i,j,k)) * f15n_nsmz(i,j,k) + &
-                    min(0.0, zoo(2)%jprod_n(i,j,k)) * f15n_nmdz(i,j,k) + min(0.0, zoo(3)%jprod_n(i,j,k)) * f15n_nlgz(i,j,k)     
+          cobalt%jprod_ndet_15n(i,j,k) = cobalt%jprod_ndet_15n(i,j,k) - min(0.0, zoo(1)%jprod_n(i,j,k)) * f15n_nsmz(i,j,k) - &
+                    min(0.0, zoo(2)%jprod_n(i,j,k)) * f15n_nmdz(i,j,k) - min(0.0, zoo(3)%jprod_n(i,j,k)) * f15n_nlgz(i,j,k)     
        endif !} ! } YZ
 
        ! Food ingested by higher predators that is not egested to detritus is excreted
@@ -5842,16 +5756,14 @@ contains
                                     cobalt%o2_2_nh4
          ! YZ: 15N, 25/11/2025 {
          if (do_15n) then !{
-            cobalt%jprod_nh4_15n(i,j,k) = cobalt%jprod_nh4_15n(i,j,k) + (1.0-cobalt%hp_phi_det)* &
-                                          cobalt%hp_jingest_n(i,j,k)*cobalt%f15n_hp_digest(i,j,k)
+            cobalt%jprod_nh4_15n(i,j,k) = cobalt%jprod_nh4_15n(i,j,k) + cobalt%hp_jdigest_n_15n(i,j,k)
          end if !} ! } YZ
        else
          cobalt%jprod_ndet(i,j,k) = cobalt%jprod_ndet(i,j,k) + (1.0-cobalt%hp_phi_det)*cobalt%hp_jingest_n(i,j,k)
          cobalt%jprod_pdet(i,j,k) = cobalt%jprod_pdet(i,j,k) + (1.0-cobalt%hp_phi_det)*cobalt%hp_jingest_p(i,j,k)
          ! YZ: 15N, 25/11/2025 {
          if (do_15n) then !{
-            cobalt%jprod_ndet_15n(i,j,k) = cobalt%jprod_ndet_15n(i,j,k) + (1.0-cobalt%hp_phi_det)* &
-                                          cobalt%hp_jingest_n(i,j,k)*cobalt%f15n_hp_digest(i,j,k)
+            cobalt%jprod_ndet_15n(i,j,k) = cobalt%jprod_ndet_15n(i,j,k) + cobalt%hp_jdigest_n_15n(i,j,k)
          endif !} ! } YZ
        endif
 
@@ -6046,8 +5958,8 @@ contains
        endif !}
        ! YZ: 15N, 25/11/2025 {
        if (do_15n) then !{
-          cobalt%jprod_nh4_15n(i,j,k) = cobalt%jprod_nh4_15n(i,j,k) + (cobalt%jremin_ndet(i,j,k) + &
-               cobalt%jremin_ndet_fast(i,j,k)) * f15n_ndet(i,j,k) * cobalt%alpha15n_remin
+          cobalt%jprod_nh4_15n(i,j,k) = cobalt%jprod_nh4_15n(i,j,k) + (cobalt%jremin_ndet(i,j,k) * f15n_ndet(i,j,k) + &
+               cobalt%jremin_ndet_fast(i,j,k) * f15n_ndet_fast(i,j,k)) * cobalt%alpha15n_remin
        endif !} ! } YZ
 
        ! Augment remineralization by anammox
@@ -6501,32 +6413,22 @@ contains
           cobalt%b_nh4(i,j) = - cobalt%fntot_btm(i,j) + cobalt%fn_burial(i,j)
           cobalt%b_no3(i,j) = cobalt%fno3denit_sed(i,j)
           ! YZ: 15N, 25/11/2025 {
-          ! 1. isotope fractionation of fntot between burial and remineralization (including aerobic remin, sedimentary
-          !    denitrification and sulfate reduction/HS- oxidation).
-          ! 2. assume no isotope fractionation of NO3 during sedimentary denitrification
-          if (do_15n) then !{ 
-             ! calculate burial efficiency of particulate organic matter
-             burial_eff = cobalt%fn_burial(i,j)/(cobalt%fntot_btm(i,j) + epsln)
-             ! calculate the ratio of 15N/14N of sinking POM to the seabed
-             cobalt%r15n_ntot_btm(i,j) = cobalt%fntot_15n_btm(i,j)/(cobalt%fntot_btm(i,j) - &
-                     cobalt%fntot_15n_btm(i,j) + epsln)
-             ! calculate the ratio of 15N/14N of POM burial
-             cobalt%r15n_burial(i,j) = cobalt%alpha15n_nofrac * cobalt%r15n_ntot_btm(i,j) / &
-                     (burial_eff * cobalt%alpha15n_nofrac + ( 1.0 - burial_eff ) * cobalt%alpha15n_remin)
-             cobalt%f15n_burial(i,j) = cobalt%r15n_burial(i,j) / (cobalt%r15n_burial(i,j) + 1.0)
-             ! calculate the ratio of 15N/14N of POM remineralization
-             cobalt%r15n_remin_sed(i,j) = cobalt%alpha15n_remin * cobalt%r15n_ntot_btm(i,j) / &
-                     (burial_eff * cobalt%alpha15n_nofrac + ( 1.0 - burial_eff ) * cobalt%alpha15n_remin)
-             cobalt%f15n_remin_sed(i,j) = cobalt%r15n_remin_sed(i,j) / (cobalt%r15n_remin_sed(i,j) + 1.0)
-
+          if (do_15n) then !{
+             ! calculate the fraction of 15N in fntot to the sediment
+             cobalt%f15n_fntot_btm(i,j) = cobalt%fntot_15n_btm(i,j)/(cobalt%fntot_btm(i,j) + epsln)
              ! calculate sediment outflux of nh4_15n into the ocean bottom layer
-             cobalt%b_nh4_15n(i,j) = - cobalt%fntot_15n_btm(i,j) + cobalt%fn_burial(i,j) * cobalt%f15n_burial(i,j)
-             
+             ! assume no isotope fractionation of NO3 during sedimentary denitrification
+             ! oxidation of H2S consumes organic matter and produces ammonium no matter whether 
+             ! consumes oxygen or not
+             cobalt%b_nh4_15n(i,j) = - (cobalt%fnoxic_sed(i,j) * cobalt%alpha15n_remin + &
+                     cobalt%fnso4red_sed(i,j) * cobalt%alpha15n_nofrac + &
+                     cobalt%fno3denit_sed(i,j)/cobalt%n_2_n_denit * cobalt%alpha15n_denit_sed) * &
+                     cobalt%f15n_fntot_btm(i,j)
              ! calculate the influx of no3_15n into sediment for sedimentary denitrification
              cobalt%b_no3_15n(i,j) = cobalt%fno3denit_sed(i,j) * cobalt%btm_no3_15n(i,j) / &
                      (cobalt%btm_no3(i,j) + epsln) * cobalt%alpha15n_denit_sed
              cobalt%b_no3_18o(i,j) = cobalt%fno3denit_sed(i,j) * cobalt%btm_no3_18o(i,j) / &
-                     (cobalt%btm_no3(i,j) + epsln) * cobalt%alpha15n_denit_sed
+                     (cobalt%btm_no3(i,j) + epsln) * cobalt%alpha18o_denit_sed
           end if !} ! } YZ
 
           ! Include latent O2 demand and alkalinity effects of HS- (see stoichiometry)
@@ -6692,29 +6594,31 @@ contains
                     cobalt%p_nmd_15n(i,j,k,tau) + &
                     cobalt%p_nsm_15n(i,j,k,tau) + cobalt%p_nbact_15n(i,j,k,tau) + &
                     cobalt%p_ldon_15n(i,j,k,tau) + cobalt%p_sldon_15n(i,j,k,tau) + &
-                    cobalt%p_srdon_15n(i,j,k,tau) +  cobalt%p_ndet_15n(i,j,k,tau) + &
+                    cobalt%p_srdon_15n(i,j,k,tau) + cobalt%p_ndet_15n(i,j,k,tau) + &
                     cobalt%p_ndet_15n_fast(i,j,k,tau) + &
                     cobalt%p_nsmz_15n(i,j,k,tau) + cobalt%p_nmdz_15n(i,j,k,tau) + &
                     cobalt%p_nlgz_15n(i,j,k,tau))*grid_tmask(i,j,k)
-            ! Current the 15N from the land is not included
+            ! Currently the 15N from the land is not included
+            if (do_r2omip) then
+            pre_totn_15n(i,j,k) = pre_totn_15n(i,j,k) + cobalt%p_tsldon_15n(i,j,k,tau)*grid_tmask(i,j,k)
+            endif
             ! Note while no isotope fractionation during anammox, but N loss from different sources should be
             ! accounted for 15N
             net_srcn_15n(i,j,k) = (cobalt%alpha15n_nfix * cobalt%r15n_atm/(cobalt%r15n_atm + 1.0) * &
                     phyto(DIAZO)%juptake_n2(i,j,k) - &
                     cobalt%alpha15n_denit_wc * f15n_no3(i,j,k) * cobalt%jno3denit_wc(i,j,k) - &
                     cobalt%alpha15n_nofrac * (f15n_no3(i,j,k) * cobalt%juptake_no3amx(i,j,k) + &
-                    f15n_nh4(i,j,k) * cobalt%juptake_nh4amx(i,j,k) + &
-                    f15n_ndet(i,j,k) * cobalt%jremin_ndet_amx(i,j,k)) + &
+                    f15n_nh4(i,j,k) * cobalt%juptake_nh4amx(i,j,k)) - &
+                    cobalt%alpha15n_remin * f15n_ndet(i,j,k) * cobalt%jremin_ndet_amx(i,j,k) + &
                     cobalt%jno3_15n_iceberg(i,j,k))*dt*grid_tmask(i,j,k)
             
             pre_totn_18o(i,j,k) = (cobalt%p_no3_18o(i,j,k,tau))*grid_tmask(i,j,k)
-            net_srcn_18o(i,j,k) = (cobalt%jprod_no3nitrif(i,j,k) * cobalt%r18o_nitrif/(cobalt%r18o_nitrif + 1.0) * &
-                    cobalt%alpha15n_nitrif - &
-                    cobalt%jno3denit_wc(i,j,k) * f18o_no3(i,j,k) * cobalt%alpha15n_denit_wc - &
+            net_srcn_18o(i,j,k) = (cobalt%jprod_no3nitrif(i,j,k) * cobalt%r18o_nitrif/(cobalt%r18o_nitrif + 1.0) - &
+                    cobalt%jno3denit_wc(i,j,k) * f18o_no3(i,j,k) * cobalt%alpha18o_denit_wc - &
                     cobalt%juptake_no3amx(i,j,k) * f18o_no3(i,j,k) * cobalt%alpha15n_nofrac - &
                     (phyto(DIAZO)%juptake_no3(i,j,k) + phyto(LARGE)%juptake_no3(i,j,k) + &
                     phyto(MEDIUM)%juptake_no3(i,j,k) + phyto(SMALL)%juptake_no3(i,j,k)) * &
-                    f18o_no3(i,j,k) * cobalt%alpha15n_uptake_no3 + &
+                    f18o_no3(i,j,k) * cobalt%alpha18o_uptake_no3 + &
                     cobalt%jno3_18o_iceberg(i,j,k))*dt*grid_tmask(i,j,k)
          endif !} ! } YZ
          ! << Apply neritic CaCO3 burial contribution to net carbon source/sink term
@@ -6784,11 +6688,12 @@ contains
                             phyto(DIAZO)%juptake_nh4(i,j,k) * f15n_nh4(i,j,k) * cobalt%alpha15n_uptake_nh4 + &
                             phyto(DIAZO)%juptake_n2(i,j,k) * cobalt%r15n_atm/(cobalt%r15n_atm + 1.0)  * &
                             cobalt%alpha15n_nfix + &
-                            min(0.0,phyto(DIAZO)%mu(i,j,k)*phyto(DIAZO)%f_n(i,j,k)) * f15n_ndi(i,j,k) - &
-                            (phyto(DIAZO)%jhploss_n(i,j,k) + phyto(DIAZO)%jzloss_n(i,j,k) + &
-                            phyto(DIAZO)%jaggloss_n(i,j,k) + phyto(DIAZO)%jvirloss_n(i,j,k) + &
-                            phyto(DIAZO)%jmortloss_n(i,j,k) + phyto(DIAZO)%jexuloss_n(i,j,k)) * &
-                            f15n_ndi(i,j,k) * cobalt%alpha15n_nofrac
+                            min(0.0,phyto(DIAZO)%mu(i,j,k)*phyto(DIAZO)%f_n_15n(i,j,k)) - &
+                            (phyto(DIAZO)%jzloss_n(i,j,k) * cobalt%alpha15n_zoo_ingest + &
+                            (phyto(DIAZO)%jhploss_n(i,j,k) + phyto(DIAZO)%jaggloss_n(i,j,k) + &
+                            phyto(DIAZO)%jvirloss_n(i,j,k) + phyto(DIAZO)%jmortloss_n(i,j,k) + &
+                            phyto(DIAZO)%jexuloss_n(i,j,k)) * cobalt%alpha15n_nofrac) * &
+                            f15n_ndi(i,j,k)
        cobalt%p_ndi_15n(i,j,k,tau) = cobalt%p_ndi_15n(i,j,k,tau) + cobalt%jndi_15n(i,j,k)*dt*grid_tmask(i,j,k) 
        endif !} ! } YZ
        !
@@ -6803,11 +6708,12 @@ contains
        if (do_15n) then !{
        cobalt%jnlg_15n(i,j,k) = phyto(LARGE)%juptake_no3(i,j,k) * f15n_no3(i,j,k) * cobalt%alpha15n_uptake_no3 + &
                             phyto(LARGE)%juptake_nh4(i,j,k) * f15n_nh4(i,j,k) * cobalt%alpha15n_uptake_nh4 + &
-                            min(0.0,phyto(LARGE)%mu(i,j,k)*phyto(LARGE)%f_n(i,j,k)) * f15n_nlg(i,j,k) - &
-                            (phyto(LARGE)%jzloss_n(i,j,k) + phyto(LARGE)%jhploss_n(i,j,k) + &
-                            phyto(LARGE)%jaggloss_n(i,j,k) + phyto(LARGE)%jvirloss_n(i,j,k) + &
-                            phyto(LARGE)%jmortloss_n(i,j,k) + phyto(LARGE)%jexuloss_n(i,j,k)) * &
-                            f15n_nlg(i,j,k) * cobalt%alpha15n_nofrac
+                            min(0.0,phyto(LARGE)%mu(i,j,k)*phyto(LARGE)%f_n_15n(i,j,k)) - &
+                            (phyto(LARGE)%jzloss_n(i,j,k) * cobalt%alpha15n_zoo_ingest + &
+                            (phyto(LARGE)%jhploss_n(i,j,k) + phyto(LARGE)%jaggloss_n(i,j,k) + &
+                            phyto(LARGE)%jvirloss_n(i,j,k) + phyto(LARGE)%jmortloss_n(i,j,k) + &
+                            phyto(LARGE)%jexuloss_n(i,j,k)) * cobalt%alpha15n_nofrac) * &
+                            f15n_nlg(i,j,k)
        cobalt%p_nlg_15n(i,j,k,tau) = cobalt%p_nlg_15n(i,j,k,tau) + cobalt%jnlg_15n(i,j,k)*dt*grid_tmask(i,j,k)
        endif !} ! } YZ
        !
@@ -6822,11 +6728,12 @@ contains
        if (do_15n) then !{
        cobalt%jnmd_15n(i,j,k) = phyto(MEDIUM)%juptake_no3(i,j,k) * f15n_no3(i,j,k) * cobalt%alpha15n_uptake_no3 + &
                             phyto(MEDIUM)%juptake_nh4(i,j,k) * f15n_nh4(i,j,k) * cobalt%alpha15n_uptake_nh4 + &
-                            min(0.0,phyto(MEDIUM)%mu(i,j,k)*phyto(MEDIUM)%f_n(i,j,k)) * f15n_nmd(i,j,k) - &
-                            (phyto(MEDIUM)%jzloss_n(i,j,k) + phyto(MEDIUM)%jhploss_n(i,j,k) + &
-                            phyto(MEDIUM)%jaggloss_n(i,j,k) + phyto(MEDIUM)%jvirloss_n(i,j,k) + &
-                            phyto(MEDIUM)%jmortloss_n(i,j,k) + phyto(MEDIUM)%jexuloss_n(i,j,k)) * &
-                            f15n_nmd(i,j,k) * cobalt%alpha15n_nofrac
+                            min(0.0,phyto(MEDIUM)%mu(i,j,k)*phyto(MEDIUM)%f_n_15n(i,j,k)) - &
+                            (phyto(MEDIUM)%jzloss_n(i,j,k) * cobalt%alpha15n_zoo_ingest + &
+                            (phyto(MEDIUM)%jhploss_n(i,j,k) + phyto(MEDIUM)%jaggloss_n(i,j,k) + &
+                            phyto(MEDIUM)%jvirloss_n(i,j,k) + phyto(MEDIUM)%jmortloss_n(i,j,k) + &
+                            phyto(MEDIUM)%jexuloss_n(i,j,k)) * cobalt%alpha15n_nofrac) * &
+                            f15n_nmd(i,j,k)
        cobalt%p_nmd_15n(i,j,k,tau) = cobalt%p_nmd_15n(i,j,k,tau) + cobalt%jnmd_15n(i,j,k)*dt*grid_tmask(i,j,k)
        endif !} ! } YZ
        !
@@ -6841,11 +6748,12 @@ contains
        if (do_15n) then !{
        cobalt%jnsm_15n(i,j,k) = phyto(SMALL)%juptake_no3(i,j,k) * f15n_no3(i,j,k) * cobalt%alpha15n_uptake_no3 + &
                             phyto(SMALL)%juptake_nh4(i,j,k) * f15n_nh4(i,j,k) * cobalt%alpha15n_uptake_nh4 + &
-                            min(0.0,phyto(SMALL)%mu(i,j,k)*phyto(SMALL)%f_n(i,j,k)) * f15n_nsm(i,j,k) - &
-                            (phyto(SMALL)%jzloss_n(i,j,k) + phyto(SMALL)%jhploss_n(i,j,k) + &
-                            phyto(SMALL)%jaggloss_n(i,j,k) + phyto(SMALL)%jvirloss_n(i,j,k) + &
-                            phyto(SMALL)%jmortloss_n(i,j,k) + phyto(SMALL)%jexuloss_n(i,j,k)) * &
-                            f15n_nsm(i,j,k) * cobalt%alpha15n_nofrac
+                            min(0.0,phyto(SMALL)%mu(i,j,k)*phyto(SMALL)%f_n_15n(i,j,k)) - &
+                            (phyto(SMALL)%jzloss_n(i,j,k) * cobalt%alpha15n_zoo_ingest + &
+                            (phyto(SMALL)%jhploss_n(i,j,k) + phyto(SMALL)%jaggloss_n(i,j,k) + &
+                            phyto(SMALL)%jvirloss_n(i,j,k) + phyto(SMALL)%jmortloss_n(i,j,k) + &
+                            phyto(SMALL)%jexuloss_n(i,j,k)) * cobalt%alpha15n_nofrac) * &
+                            f15n_nsm(i,j,k)
        cobalt%p_nsm_15n(i,j,k,tau) = cobalt%p_nsm_15n(i,j,k,tau) + cobalt%jnsm_15n(i,j,k)*dt*grid_tmask(i,j,k)
        endif !} ! } YZ
        !
@@ -6953,11 +6861,9 @@ contains
        cobalt%p_nbact(i,j,k,tau) = cobalt%p_nbact(i,j,k,tau) + cobalt%jnbact(i,j,k)*dt*grid_tmask(i,j,k)
        ! YZ: 15N, 25/11/2025 {
        if (do_15n) then !{
-       cobalt%jnbact_15n(i,j,k) = bact(1)%juptake_ldon(i,j,k) * f15n_ldon(i,j,k) * cobalt%alpha15n_uptake_ldon - &
-                              bact(1)%jprod_nh4(i,j,k) * bact(1)%f15n_resp(i,j,k) + &
-                              min(0.0, bact(1)%jprod_n(i,j,k)) * f15n_nbact(i,j,k) - &
-                              (bact(1)%jzloss_n(i,j,k) + bact(1)%jvirloss_n(i,j,k) + bact(1)%jhploss_n(i,j,k)) * &
-                              cobalt%alpha15n_nofrac
+       cobalt%jnbact_15n(i,j,k) = bact(1)%jprod_n_15n(i,j,k) - (bact(1)%jzloss_n(i,j,k) * cobalt%alpha15n_zoo_ingest + & 
+                              (bact(1)%jvirloss_n(i,j,k) + bact(1)%jhploss_n(i,j,k)) * cobalt%alpha15n_nofrac) * &
+                              f15n_nbact(i,j,k)
        cobalt%p_nbact_15n(i,j,k,tau) = cobalt%p_nbact_15n(i,j,k,tau) + cobalt%jnbact_15n(i,j,k)*dt*grid_tmask(i,j,k)
        endif !} ! } YZ
     enddo; enddo ; enddo  !} i,j,k
@@ -6977,7 +6883,8 @@ contains
        ! YZ: 15N, 25/11/2025 {
        if (do_15n) then !{
        cobalt%jnsmz_15n(i,j,k) = zoo(1)%jprod_n_15n(i,j,k) + min(0.0, zoo(1)%jprod_n(i,j,k)) * f15n_nsmz(i,j,k) - &
-                             (zoo(1)%jzloss_n(i,j,k) + zoo(1)%jhploss_n(i,j,k)) * f15n_nsmz(i,j,k) * cobalt%alpha15n_nofrac
+                             (zoo(1)%jzloss_n(i,j,k) * cobalt%alpha15n_zoo_ingest + &
+                             zoo(1)%jhploss_n(i,j,k) * cobalt%alpha15n_hp_ingest) * f15n_nsmz(i,j,k)
        cobalt%p_nsmz_15n(i,j,k,tau) = cobalt%p_nsmz_15n(i,j,k,tau) + cobalt%jnsmz_15n(i,j,k)*dt*grid_tmask(i,j,k) 
        endif !} ! } YZ
        !
@@ -6989,7 +6896,8 @@ contains
        ! YZ: 15N, 25/11/2025 {
        if (do_15n) then !{
        cobalt%jnmdz_15n(i,j,k) = zoo(2)%jprod_n_15n(i,j,k) + min(0.0, zoo(2)%jprod_n(i,j,k)) * f15n_nmdz(i,j,k) - &
-                             (zoo(2)%jzloss_n(i,j,k) + zoo(2)%jhploss_n(i,j,k)) * f15n_nmdz(i,j,k) * cobalt%alpha15n_nofrac
+                             (zoo(2)%jzloss_n(i,j,k) * cobalt%alpha15n_zoo_ingest + &
+                             zoo(2)%jhploss_n(i,j,k) * cobalt%alpha15n_hp_ingest) * f15n_nmdz(i,j,k)
        cobalt%p_nmdz_15n(i,j,k,tau) = cobalt%p_nmdz_15n(i,j,k,tau) + cobalt%jnmdz_15n(i,j,k)*dt*grid_tmask(i,j,k)
        endif !} ! } YZ
        !
@@ -7001,7 +6909,8 @@ contains
        ! YZ: 15N, 25/11/2025 {
        if (do_15n) then !{
        cobalt%jnlgz_15n(i,j,k) = zoo(3)%jprod_n_15n(i,j,k) + min(0.0, zoo(3)%jprod_n(i,j,k)) * f15n_nlgz(i,j,k) - &
-                             (zoo(3)%jzloss_n(i,j,k) + zoo(3)%jhploss_n(i,j,k)) * f15n_nlgz(i,j,k) * cobalt%alpha15n_nofrac
+                             (zoo(3)%jzloss_n(i,j,k) * cobalt%alpha15n_zoo_ingest + &
+                             zoo(3)%jhploss_n(i,j,k) * cobalt%alpha15n_hp_ingest) * f15n_nlgz(i,j,k)
        cobalt%p_nlgz_15n(i,j,k,tau) = cobalt%p_nlgz_15n(i,j,k,tau) + cobalt%jnlgz_15n(i,j,k)*dt*grid_tmask(i,j,k)
        endif !} ! } YZ
     enddo; enddo ; enddo  !} i,j,k
@@ -7030,12 +6939,11 @@ contains
        cobalt%p_no3_15n(i,j,k,tau) = cobalt%p_no3_15n(i,j,k,tau) + (cobalt%jno3_15n(i,j,k) + &
                              cobalt%jno3_15n_iceberg(i,j,k))*dt*grid_tmask(i,j,k)
 
-       cobalt%jno3_18o(i,j,k) = cobalt%jprod_no3nitrif(i,j,k) * cobalt%r18o_nitrif/(cobalt%r18o_nitrif + 1.0) * &
-                             cobalt%alpha15n_nitrif - &
-                             (phyto(DIAZO)%juptake_no3(i,j,k) + phyto(DIAZO)%juptake_no3(i,j,k) + &
-                             phyto(DIAZO)%juptake_no3(i,j,k) + phyto(DIAZO)%juptake_no3(i,j,k)) * &
-                             f18o_no3(i,j,k) * cobalt%alpha15n_uptake_no3 - &
-                             cobalt%jno3denit_wc(i,j,k) * f18o_no3(i,j,k) * cobalt%alpha15n_denit_wc - &
+       cobalt%jno3_18o(i,j,k) = cobalt%jprod_no3nitrif(i,j,k) * cobalt%r18o_nitrif/(cobalt%r18o_nitrif + 1.0) - &
+                             (phyto(DIAZO)%juptake_no3(i,j,k) + phyto(LARGE)%juptake_no3(i,j,k) + &
+                             phyto(MEDIUM)%juptake_no3(i,j,k) + phyto(SMALL)%juptake_no3(i,j,k)) * &
+                             f18o_no3(i,j,k) * cobalt%alpha18o_uptake_no3 - &
+                             cobalt%jno3denit_wc(i,j,k) * f18o_no3(i,j,k) * cobalt%alpha18o_denit_wc - &
                              cobalt%juptake_no3amx(i,j,k) * f18o_no3(i,j,k) * cobalt%alpha15n_nofrac
        cobalt%p_no3_18o(i,j,k,tau) = cobalt%p_no3_18o(i,j,k,tau) + (cobalt%jno3_18o(i,j,k) + &
                              cobalt%jno3_18o_iceberg(i,j,k))*dt*grid_tmask(i,j,k)
@@ -7063,8 +6971,8 @@ contains
        cobalt%p_nh4(i,j,k,tau) = cobalt%p_nh4(i,j,k,tau) + cobalt%jnh4(i,j,k) * dt * grid_tmask(i,j,k)
        ! YZ: 15N, 25/11/2025 {
        if (do_15n) then !{
-       cobalt%jnh4_15n(i,j,k) = cobalt%jprod_nh4_15n(i,j,k) - (phyto(DIAZO)%juptake_nh4(i,j,k) - &
-                            phyto(LARGE)%juptake_nh4(i,j,k) - phyto(MEDIUM)%juptake_nh4(i,j,k) - &
+       cobalt%jnh4_15n(i,j,k) = cobalt%jprod_nh4_15n(i,j,k) - (phyto(DIAZO)%juptake_nh4(i,j,k) + &
+                            phyto(LARGE)%juptake_nh4(i,j,k) + phyto(MEDIUM)%juptake_nh4(i,j,k) + &
                             phyto(SMALL)%juptake_nh4(i,j,k)) * f15n_nh4(i,j,k) * cobalt%alpha15n_uptake_nh4 - &
                             cobalt%juptake_nh4nitrif(i,j,k) * f15n_nh4(i,j,k) * cobalt%alpha15n_nitrif - &
                             cobalt%juptake_nh4amx(i,j,k) * f15n_nh4(i,j,k) * cobalt%alpha15n_nofrac
@@ -7200,7 +7108,7 @@ contains
        if (do_15n) then !{
        cobalt%jldon_15n(i,j,k) = cobalt%jprod_ldon_15n(i,j,k) + cobalt%gamma_sldon*cobalt%expkT(i,j,k)* &
                              cobalt%f_sldon(i,j,k) * f15n_sldon(i,j,k) * cobalt%alpha15n_decay_don + &
-                             cobalt%gamma_srdon*cobalt%f_srdon(i,j,k) * f15n_srdon(i,j,k) * &
+                             cobalt%gamma_srdon * cobalt%f_srdon(i,j,k) * f15n_srdon(i,j,k) * &
                              cobalt%alpha15n_decay_don - &
                              bact(1)%juptake_ldon(i,j,k) * f15n_ldon(i,j,k) * cobalt%alpha15n_uptake_ldon
        if (do_r2omip) then !{
@@ -7254,7 +7162,7 @@ contains
             grid_tmask(i,j,k)
        ! YZ: 15N, 25/11/2025 {
        if (do_15n) then !{
-       cobalt%jsrdon_15n(i,j,k) = cobalt%jprod_srdon_15n(i,j,k) - cobalt%gamma_srdon*cobalt%expkT(i,j,k)* &
+       cobalt%jsrdon_15n(i,j,k) = cobalt%jprod_srdon_15n(i,j,k) - cobalt%gamma_srdon * &
                               cobalt%f_srdon(i,j,k) * f15n_srdon(i,j,k) * cobalt%alpha15n_decay_don
        cobalt%p_srdon_15n(i,j,k,tau) = cobalt%p_srdon_15n(i,j,k,tau) + cobalt%jsrdon_15n(i,j,k)*dt* &
                               grid_tmask(i,j,k)
@@ -7467,63 +7375,44 @@ contains
     if (do_15n) then !{
     do k = 1, nk ; do j = jsc, jec ; do i = isc, iec   !{
        ! updating f15n
-       f15n_no3(i,j,k) = cobalt%p_no3_15n(i,j,k,tau)/(cobalt%p_no3(i,j,k,tau) + epsln)*grid_tmask(i,j,k)
-       f15n_nh4(i,j,k) = cobalt%p_nh4_15n(i,j,k,tau)/(cobalt%p_nh4(i,j,k,tau) + epsln)*grid_tmask(i,j,k)
-       f15n_ndi(i,j,k) = cobalt%p_ndi_15n(i,j,k,tau)/(cobalt%p_ndi(i,j,k,tau) + epsln)*grid_tmask(i,j,k)
-       f15n_nlg(i,j,k) = cobalt%p_nlg_15n(i,j,k,tau)/(cobalt%p_nlg(i,j,k,tau) + epsln)*grid_tmask(i,j,k)
-       f15n_nmd(i,j,k) = cobalt%p_nmd_15n(i,j,k,tau)/(cobalt%p_nmd(i,j,k,tau) + epsln)*grid_tmask(i,j,k)
-       f15n_nsm(i,j,k) = cobalt%p_nsm_15n(i,j,k,tau)/(cobalt%p_nsm(i,j,k,tau) + epsln)*grid_tmask(i,j,k)
-       f15n_nsmz(i,j,k) = cobalt%p_nsmz_15n(i,j,k,tau)/(cobalt%p_nsmz(i,j,k,tau) + epsln)*grid_tmask(i,j,k)
-       f15n_nmdz(i,j,k) = cobalt%p_nmdz_15n(i,j,k,tau)/(cobalt%p_nmdz(i,j,k,tau) + epsln)*grid_tmask(i,j,k)
-       f15n_nlgz(i,j,k) = cobalt%p_nlgz_15n(i,j,k,tau)/(cobalt%p_nlgz(i,j,k,tau) + epsln)*grid_tmask(i,j,k)
-       f15n_ldon(i,j,k) = cobalt%p_ldon_15n(i,j,k,tau)/(cobalt%p_ldon(i,j,k,tau) + epsln)*grid_tmask(i,j,k)
-       f15n_sldon(i,j,k) = cobalt%p_sldon_15n(i,j,k,tau)/(cobalt%p_sldon(i,j,k,tau) + epsln)*grid_tmask(i,j,k)
-       f15n_srdon(i,j,k) = cobalt%p_srdon_15n(i,j,k,tau)/(cobalt%p_srdon(i,j,k,tau) + epsln)*grid_tmask(i,j,k)
-       f15n_nbact(i,j,k) = cobalt%p_nbact_15n(i,j,k,tau)/(cobalt%p_nbact(i,j,k,tau) + epsln)*grid_tmask(i,j,k)
-       f15n_ndet(i,j,k) = cobalt%p_ndet_15n(i,j,k,tau)/(cobalt%p_ndet(i,j,k,tau) + epsln)*grid_tmask(i,j,k)
-       f15n_ndet_fast(i,j,k) = cobalt%p_ndet_15n_fast(i,j,k,tau)/(cobalt%p_ndet_fast(i,j,k,tau) + epsln)*grid_tmask(i,j,k)
-       f18o_no3(i,j,k) = cobalt%p_no3_18o(i,j,k,tau)/(cobalt%p_no3(i,j,k,tau) + epsln)*grid_tmask(i,j,k)
-       if (do_r2omip) f15n_tsldon(i,j,k) = cobalt%p_tsldon_15n(i,j,k,tau)/(cobalt%p_tsldon(i,j,k,tau) + epsln)*grid_tmask(i,j,k)
+       f15n_no3(i,j,k) = cobalt%p_no3_15n(i,j,k,tau)/(cobalt%p_no3(i,j,k,tau) + epsln)
+       f15n_nh4(i,j,k) = cobalt%p_nh4_15n(i,j,k,tau)/(cobalt%p_nh4(i,j,k,tau) + epsln)
+       f15n_ndi(i,j,k) = cobalt%p_ndi_15n(i,j,k,tau)/(cobalt%p_ndi(i,j,k,tau) + epsln)
+       f15n_nlg(i,j,k) = cobalt%p_nlg_15n(i,j,k,tau)/(cobalt%p_nlg(i,j,k,tau) + epsln)
+       f15n_nmd(i,j,k) = cobalt%p_nmd_15n(i,j,k,tau)/(cobalt%p_nmd(i,j,k,tau) + epsln)
+       f15n_nsm(i,j,k) = cobalt%p_nsm_15n(i,j,k,tau)/(cobalt%p_nsm(i,j,k,tau) + epsln)
+       f15n_nsmz(i,j,k) = cobalt%p_nsmz_15n(i,j,k,tau)/(cobalt%p_nsmz(i,j,k,tau) + epsln)
+       f15n_nmdz(i,j,k) = cobalt%p_nmdz_15n(i,j,k,tau)/(cobalt%p_nmdz(i,j,k,tau) + epsln)
+       f15n_nlgz(i,j,k) = cobalt%p_nlgz_15n(i,j,k,tau)/(cobalt%p_nlgz(i,j,k,tau) + epsln)
+       f15n_ldon(i,j,k) = cobalt%p_ldon_15n(i,j,k,tau)/(cobalt%p_ldon(i,j,k,tau) + epsln)
+       f15n_sldon(i,j,k) = cobalt%p_sldon_15n(i,j,k,tau)/(cobalt%p_sldon(i,j,k,tau) + epsln)
+       f15n_srdon(i,j,k) = cobalt%p_srdon_15n(i,j,k,tau)/(cobalt%p_srdon(i,j,k,tau) + epsln)
+       f15n_nbact(i,j,k) = cobalt%p_nbact_15n(i,j,k,tau)/(cobalt%p_nbact(i,j,k,tau) + epsln)
+       f15n_ndet(i,j,k) = cobalt%p_ndet_15n(i,j,k,tau)/(cobalt%p_ndet(i,j,k,tau) + epsln)
+       f15n_ndet_fast(i,j,k) = cobalt%p_ndet_15n_fast(i,j,k,tau)/(cobalt%p_ndet_fast(i,j,k,tau) + epsln)
+       f18o_no3(i,j,k) = cobalt%p_no3_18o(i,j,k,tau)/(cobalt%p_no3(i,j,k,tau) + epsln)
+       if (do_r2omip) f15n_tsldon(i,j,k) = cobalt%p_tsldon_15n(i,j,k,tau)/(cobalt%p_tsldon(i,j,k,tau) + epsln)
 
        ! calculate d15n
-       cobalt%f_d15n_no3(i,j,k) = (f15n_no3(i,j,k)/(1.0 - f15n_no3(i,j,k)) / cobalt%r15n_atm - 1.0) * 1000.0
-       cobalt%f_d15n_nh4(i,j,k) = (f15n_nh4(i,j,k)/(1.0 - f15n_nh4(i,j,k)) / cobalt%r15n_atm - 1.0) * 1000.0
-       cobalt%f_d15n_ndi(i,j,k) = (f15n_ndi(i,j,k)/(1.0 - f15n_ndi(i,j,k)) / cobalt%r15n_atm - 1.0) * 1000.0
-       cobalt%f_d15n_nlg(i,j,k) = (f15n_nlg(i,j,k)/(1.0 - f15n_nlg(i,j,k)) / cobalt%r15n_atm - 1.0) * 1000.0
-       cobalt%f_d15n_nmd(i,j,k) = (f15n_nmd(i,j,k)/(1.0 - f15n_nmd(i,j,k)) / cobalt%r15n_atm - 1.0) * 1000.0
-       cobalt%f_d15n_nsm(i,j,k) = (f15n_nsm(i,j,k)/(1.0 - f15n_nsm(i,j,k)) / cobalt%r15n_atm - 1.0) * 1000.0
-       cobalt%f_d15n_nsmz(i,j,k) = (f15n_nsmz(i,j,k)/(1.0 - f15n_nsmz(i,j,k)) / cobalt%r15n_atm - 1.0) * 1000.0
-       cobalt%f_d15n_nmdz(i,j,k) = (f15n_nmdz(i,j,k)/(1.0 - f15n_nmdz(i,j,k)) / cobalt%r15n_atm - 1.0) * 1000.0
-       cobalt%f_d15n_nlgz(i,j,k) = (f15n_nlgz(i,j,k)/(1.0 - f15n_nlgz(i,j,k)) / cobalt%r15n_atm - 1.0) * 1000.0
-       cobalt%f_d15n_ldon(i,j,k) = (f15n_ldon(i,j,k)/(1.0 - f15n_ldon(i,j,k)) / cobalt%r15n_atm - 1.0) * 1000.0
-       cobalt%f_d15n_sldon(i,j,k) = (f15n_sldon(i,j,k)/(1.0 - f15n_sldon(i,j,k)) / cobalt%r15n_atm - 1.0) * 1000.0
-       cobalt%f_d15n_srdon(i,j,k) = (f15n_srdon(i,j,k)/(1.0 - f15n_srdon(i,j,k)) / cobalt%r15n_atm - 1.0) * 1000.0
-       cobalt%f_d15n_nbact(i,j,k) = (f15n_nbact(i,j,k)/(1.0 - f15n_nbact(i,j,k)) / cobalt%r15n_atm - 1.0) * 1000.0
-       cobalt%f_d15n_ndet(i,j,k) = (f15n_ndet(i,j,k)/(1.0 - f15n_ndet(i,j,k)) / cobalt%r15n_atm - 1.0) * 1000.0
-       cobalt%f_d15n_ndet_fast(i,j,k) = (f15n_ndet_fast(i,j,k)/(1.0 - f15n_ndet_fast(i,j,k)) / cobalt%r15n_atm - 1.0) * 1000.0
-       cobalt%f_d18o_no3(i,j,k) = (f18o_no3(i,j,k)/(1.0 - f18o_no3(i,j,k)) / cobalt%r15n_atm - 1.0) * 1000.0
-       if (do_r2omip) cobalt%f_d15n_tsldon(i,j,k) = (f15n_tsldon(i,j,k)/(1.0 - f15n_tsldon(i,j,k)) / cobalt%r15n_atm - 1.0) * 1000.0
+       cobalt%d15n_no3(i,j,k) = (f15n_no3(i,j,k)/(1.0 - f15n_no3(i,j,k)) / cobalt%r15n_ref - 1.0) * 1000.0 * grid_tmask(i,j,k)
+       cobalt%d15n_nh4(i,j,k) = (f15n_nh4(i,j,k)/(1.0 - f15n_nh4(i,j,k)) / cobalt%r15n_ref - 1.0) * 1000.0 * grid_tmask(i,j,k)
+       cobalt%d15n_ndi(i,j,k) = (f15n_ndi(i,j,k)/(1.0 - f15n_ndi(i,j,k)) / cobalt%r15n_ref - 1.0) * 1000.0 * grid_tmask(i,j,k)
+       cobalt%d15n_nlg(i,j,k) = (f15n_nlg(i,j,k)/(1.0 - f15n_nlg(i,j,k)) / cobalt%r15n_ref - 1.0) * 1000.0 * grid_tmask(i,j,k)
+       cobalt%d15n_nmd(i,j,k) = (f15n_nmd(i,j,k)/(1.0 - f15n_nmd(i,j,k)) / cobalt%r15n_ref - 1.0) * 1000.0 * grid_tmask(i,j,k)
+       cobalt%d15n_nsm(i,j,k) = (f15n_nsm(i,j,k)/(1.0 - f15n_nsm(i,j,k)) / cobalt%r15n_ref - 1.0) * 1000.0 * grid_tmask(i,j,k)
+       cobalt%d15n_nsmz(i,j,k) = (f15n_nsmz(i,j,k)/(1.0 - f15n_nsmz(i,j,k)) / cobalt%r15n_ref - 1.0) * 1000.0 * grid_tmask(i,j,k)
+       cobalt%d15n_nmdz(i,j,k) = (f15n_nmdz(i,j,k)/(1.0 - f15n_nmdz(i,j,k)) / cobalt%r15n_ref - 1.0) * 1000.0 * grid_tmask(i,j,k)
+       cobalt%d15n_nlgz(i,j,k) = (f15n_nlgz(i,j,k)/(1.0 - f15n_nlgz(i,j,k)) / cobalt%r15n_ref - 1.0) * 1000.0 * grid_tmask(i,j,k)
+       cobalt%d15n_ldon(i,j,k) = (f15n_ldon(i,j,k)/(1.0 - f15n_ldon(i,j,k)) / cobalt%r15n_ref - 1.0) * 1000.0 * grid_tmask(i,j,k)
+       cobalt%d15n_sldon(i,j,k) = (f15n_sldon(i,j,k)/(1.0 - f15n_sldon(i,j,k)) / cobalt%r15n_ref - 1.0) * 1000.0 * grid_tmask(i,j,k)
+       cobalt%d15n_srdon(i,j,k) = (f15n_srdon(i,j,k)/(1.0 - f15n_srdon(i,j,k)) / cobalt%r15n_ref - 1.0) * 1000.0 * grid_tmask(i,j,k)
+       cobalt%d15n_nbact(i,j,k) = (f15n_nbact(i,j,k)/(1.0 - f15n_nbact(i,j,k)) / cobalt%r15n_ref - 1.0) * 1000.0 * grid_tmask(i,j,k)
+       cobalt%d15n_ndet(i,j,k) = (f15n_ndet(i,j,k)/(1.0 - f15n_ndet(i,j,k)) / cobalt%r15n_ref - 1.0) * 1000.0 * grid_tmask(i,j,k)
+       cobalt%d15n_ndet_fast(i,j,k) = (f15n_ndet_fast(i,j,k)/(1.0 - f15n_ndet_fast(i,j,k)) / cobalt%r15n_ref - 1.0) * 1000.0 * grid_tmask(i,j,k)
+       cobalt%d18o_no3(i,j,k) = (f18o_no3(i,j,k)/(1.0 - f18o_no3(i,j,k)) / cobalt%r15n_ref - 1.0) * 1000.0 * grid_tmask(i,j,k)
+       if (do_r2omip) cobalt%d15n_tsldon(i,j,k) = (f15n_tsldon(i,j,k)/(1.0 - f15n_tsldon(i,j,k)) / cobalt%r15n_ref - 1.0) * 1000.0 * grid_tmask(i,j,k)
     enddo; enddo ; enddo !} i,j,k
-
-    ! Set the diagnostic d15n values
-    call g_tracer_set_values(tracer_list,'d15n_no3' ,'field',cobalt%f_d15n_no3 ,isd,jsd)
-    call g_tracer_set_values(tracer_list,'d15n_nh4' ,'field',cobalt%f_d15n_nh4 ,isd,jsd)
-    call g_tracer_set_values(tracer_list,'d15n_ndi' ,'field',cobalt%f_d15n_ndi ,isd,jsd)
-    call g_tracer_set_values(tracer_list,'d15n_nlg' ,'field',cobalt%f_d15n_nlg ,isd,jsd)
-    call g_tracer_set_values(tracer_list,'d15n_nmd' ,'field',cobalt%f_d15n_nmd ,isd,jsd)
-    call g_tracer_set_values(tracer_list,'d15n_nsm' ,'field',cobalt%f_d15n_nsm ,isd,jsd)
-    call g_tracer_set_values(tracer_list,'d15n_nsmz' ,'field',cobalt%f_d15n_nsmz ,isd,jsd)
-    call g_tracer_set_values(tracer_list,'d15n_nmdz' ,'field',cobalt%f_d15n_nmdz ,isd,jsd)
-    call g_tracer_set_values(tracer_list,'d15n_nlgz' ,'field',cobalt%f_d15n_nlgz ,isd,jsd)
-    call g_tracer_set_values(tracer_list,'d15n_ldon' ,'field',cobalt%f_d15n_ldon ,isd,jsd)
-    call g_tracer_set_values(tracer_list,'d15n_sldon' ,'field',cobalt%f_d15n_sldon ,isd,jsd)
-    call g_tracer_set_values(tracer_list,'d15n_srdon' ,'field',cobalt%f_d15n_srdon ,isd,jsd)
-    call g_tracer_set_values(tracer_list,'d15n_nbact' ,'field',cobalt%f_d15n_nbact ,isd,jsd)
-    call g_tracer_set_values(tracer_list,'d15n_ndet' ,'field',cobalt%f_d15n_ndet ,isd,jsd)
-    call g_tracer_set_values(tracer_list,'d15n_ndet_fast' ,'field',cobalt%f_d15n_ndet_fast ,isd,jsd)
-    call g_tracer_set_values(tracer_list,'d18o_no3' ,'field',cobalt%f_d18o_no3 ,isd,jsd)
-    if (do_r2omip) call g_tracer_set_values(tracer_list,'d15n_tsldon' ,'field',cobalt%f_d15n_tsldon ,isd,jsd)
-    endif !} ! } YZ
+    endif !} YZ
 
     ! CAS calculate totals after source/sinks have been applied
     ! Imbalance in one timestep is converted from moles kg-1 to units of mmoles m-3 day-1 and compared 
@@ -7565,7 +7454,7 @@ contains
                     cobalt%p_ndi_15n(i,j,k,tau) + cobalt%p_nlg_15n(i,j,k,tau) + cobalt%p_nmd_15n(i,j,k,tau) + &
                     cobalt%p_nsm_15n(i,j,k,tau) + cobalt%p_nbact_15n(i,j,k,tau) + &
                     cobalt%p_ldon_15n(i,j,k,tau) + cobalt%p_sldon_15n(i,j,k,tau) + &
-                    cobalt%p_srdon_15n(i,j,k,tau) +  cobalt%p_ndet_15n(i,j,k,tau) + &
+                    cobalt%p_srdon_15n(i,j,k,tau) + cobalt%p_ndet_15n(i,j,k,tau) + &
                     cobalt%p_ndet_15n_fast(i,j,k,tau) + &
                     cobalt%p_nsmz_15n(i,j,k,tau) + cobalt%p_nmdz_15n(i,j,k,tau) + &
                     cobalt%p_nlgz_15n(i,j,k,tau))*grid_tmask(i,j,k)
@@ -7574,6 +7463,7 @@ contains
          endif !}
          imbal = (post_totn_15n(i,j,k) - pre_totn_15n(i,j,k) - net_srcn_15n(i,j,k))*86400.0/dt*1.03e6
          if (abs(imbal).gt.imbalance_tolerance) then
+           write(*,*) '==>biological source/sink imbalance ', imbal
            call mpp_error(FATAL,&
            '==>biological source/sink imbalance (generic_COBALT_update_from_source): 15N-labelled Nitrogen')
          endif
@@ -7581,6 +7471,7 @@ contains
          post_totn_18o(i,j,k) = (cobalt%p_no3_18o(i,j,k,tau)) * grid_tmask(i,j,k)
          imbal = (post_totn_18o(i,j,k) - pre_totn_18o(i,j,k) - net_srcn_18o(i,j,k))*86400.0/dt*1.03e6
          if (abs(imbal).gt.imbalance_tolerance) then
+           write(*,*) '==>biological source/sink imbalance of 18O-NO3 ', imbal      
            call mpp_error(FATAL,&
            '==>biological source/sink imbalance (generic_COBALT_update_from_source): 18o-labelled Nitrogen')
          endif
@@ -7996,6 +7887,9 @@ contains
           zoo(n)%jprod_n_100(i,j) = zoo(n)%jprod_n(i,j,1) * rho_dzt(i,j,1)
           zoo(n)%jingest_n_100(i,j) = zoo(n)%jingest_n(i,j,1) * rho_dzt(i,j,1)
           zoo(n)%jremin_n_100(i,j) = zoo(n)%jprod_nh4(i,j,1) * rho_dzt(i,j,1)
+          if (do_15n) zoo(n)%jprod_n_15n_100(i,j) = zoo(n)%jprod_n_15n(i,j,1) * rho_dzt(i,j,1)     ! YZ: 15N, 22/04/2026
+          if (do_15n) zoo(n)%jingest_n_15n_100(i,j) = zoo(n)%jingest_n_15n(i,j,1) * rho_dzt(i,j,1) ! YZ: 15N, 22/04/2026
+          if (do_15n) zoo(n)%jdigest_n_15n_100(i,j) = zoo(n)%jdigest_n_15n(i,j,1) * rho_dzt(i,j,1) ! YZ: 15N, 22/04/2026
        enddo   !} n
 
        do n = 1,2  !{
@@ -8012,8 +7906,11 @@ contains
        cobalt%hp_jingest_n_100(i,j) = cobalt%hp_jingest_n(i,j,1)*rho_dzt(i,j,1)
        cobalt%hp_jremin_n_100(i,j) =  cobalt%hp_jingest_n(i,j,1)*rho_dzt(i,j,1)*(1.0-cobalt%hp_phi_det)
        cobalt%hp_jprod_ndet_100(i,j) =  cobalt%hp_jingest_n(i,j,1)*rho_dzt(i,j,1)*cobalt%hp_phi_det
+       if (do_15n) cobalt%hp_jingest_n_15n_100(i,j) = cobalt%hp_jingest_n_15n(i,j,1)*rho_dzt(i,j,1) ! YZ: 15N, 22/04/2026
+       if (do_15n) cobalt%hp_jdigest_n_15n_100(i,j) = cobalt%hp_jdigest_n_15n(i,j,1)*rho_dzt(i,j,1) ! YZ: 15N, 22/04/2026
 
        bact(1)%jprod_n_100(i,j) = bact(1)%jprod_n(i,j,1) * rho_dzt(i,j,1)
+       if (do_15n) bact(1)%jprod_n_15n_100(i,j) = bact(1)%jprod_n_15n(i,j,1) * rho_dzt(i,j,1) ! YZ: 15N, 22/04/2026
        bact(1)%jzloss_n_100(i,j) = bact(1)%jzloss_n(i,j,1) * rho_dzt(i,j,1)
        bact(1)%jvirloss_n_100(i,j) = bact(1)%jvirloss_n(i,j,1) * rho_dzt(i,j,1)
        bact(1)%jremin_n_100(i,j) = bact(1)%jprod_nh4(i,j,1) * rho_dzt(i,j,1)
@@ -8076,6 +7973,15 @@ contains
                    rho_dzt(i,j,k)
                 zoo(n)%jremin_n_100(i,j) = zoo(n)%jremin_n_100(i,j) + zoo(n)%jprod_nh4(i,j,k)* &
                    rho_dzt(i,j,k)
+                ! YZ: 15N, 22/04/2026 {
+                if (do_15n) then !{
+                   zoo(n)%jprod_n_15n_100(i,j) = zoo(n)%jprod_n_15n_100(i,j) + zoo(n)%jprod_n_15n(i,j,k)* &
+                      rho_dzt(i,j,k)
+                   zoo(n)%jingest_n_15n_100(i,j) = zoo(n)%jingest_n_15n_100(i,j) + zoo(n)%jingest_n_15n(i,j,k)* &
+                      rho_dzt(i,j,k)
+                   zoo(n)%jdigest_n_15n_100(i,j) = zoo(n)%jdigest_n_15n_100(i,j) + zoo(n)%jdigest_n_15n(i,j,k)* &
+                      rho_dzt(i,j,k)
+                endif !} !} YZ
              enddo !} n
 
              do n = 1,2 !{
@@ -8098,8 +8004,16 @@ contains
                  (1.0-cobalt%hp_phi_det)*rho_dzt(i,j,k)
              cobalt%hp_jprod_ndet_100(i,j) = cobalt%hp_jprod_ndet_100(i,j) + cobalt%hp_jingest_n(i,j,k)* &
                  cobalt%hp_phi_det*rho_dzt(i,j,k)
+             ! YZ: 15N, 22/04/2026 {
+             if (do_15n) then
+                cobalt%hp_jingest_n_15n_100(i,j) = cobalt%hp_jingest_n_15n_100(i,j) + cobalt%hp_jingest_n_15n(i,j,k)* &
+                   rho_dzt(i,j,k)
+                cobalt%hp_jdigest_n_15n_100(i,j) = cobalt%hp_jdigest_n_15n_100(i,j) + cobalt%hp_jdigest_n_15n(i,j,k)* &
+                   rho_dzt(i,j,k)
+             endif !} !} YZ
 
              bact(1)%jprod_n_100(i,j) = bact(1)%jprod_n_100(i,j) + bact(1)%jprod_n(i,j,k) * rho_dzt(i,j,k)
+             if (do_15n) bact(1)%jprod_n_15n_100(i,j) = bact(1)%jprod_n_15n_100(i,j) + bact(1)%jprod_n_15n(i,j,k) * rho_dzt(i,j,k) ! YZ: 15N, 22/04/2026
              bact(1)%jzloss_n_100(i,j) = bact(1)%jzloss_n_100(i,j) + bact(1)%jzloss_n(i,j,k) * rho_dzt(i,j,k)
              bact(1)%jvirloss_n_100(i,j) = bact(1)%jvirloss_n_100(i,j) + bact(1)%jvirloss_n(i,j,k) * rho_dzt(i,j,k)
              bact(1)%jremin_n_100(i,j) = bact(1)%jremin_n_100(i,j) + bact(1)%jprod_nh4(i,j,k) * rho_dzt(i,j,k)
@@ -8158,6 +8072,15 @@ contains
                  drho_dzt
                zoo(n)%jremin_n_100(i,j) = zoo(n)%jremin_n_100(i,j) + zoo(n)%jprod_nh4(i,j,k_100)* &
                  drho_dzt
+               ! YZ: 15N, 22/04/2026 {
+               if (do_15n) then
+                 zoo(n)%jprod_n_15n_100(i,j) = zoo(n)%jprod_n_15n_100(i,j) + zoo(n)%jprod_n_15n(i,j,k_100)* &
+                    drho_dzt
+                 zoo(n)%jingest_n_15n_100(i,j) = zoo(n)%jingest_n_15n_100(i,j) + zoo(n)%jingest_n_15n(i,j,k_100)* &
+                    drho_dzt
+                 zoo(n)%jdigest_n_15n_100(i,j) = zoo(n)%jdigest_n_15n_100(i,j) + zoo(n)%jdigest_n_15n(i,j,k_100)* &
+                    drho_dzt
+               endif !} !} YZ
            enddo !} n
 
            do n = 1,2 !{
@@ -8180,9 +8103,17 @@ contains
                (1.0-cobalt%hp_phi_det)*drho_dzt
            cobalt%hp_jprod_ndet_100(i,j) = cobalt%hp_jprod_ndet_100(i,j) + cobalt%hp_jingest_n(i,j,k_100)* &
                cobalt%hp_phi_det*drho_dzt
+           ! YZ: 15N, 22/04/2026 {
+           if (do_15n) then
+              cobalt%hp_jingest_n_15n_100(i,j) = cobalt%hp_jingest_n_15n_100(i,j) + cobalt%hp_jingest_n_15n(i,j,k_100)* &
+                 drho_dzt
+              cobalt%hp_jdigest_n_15n_100(i,j) = cobalt%hp_jdigest_n_15n_100(i,j) + cobalt%hp_jdigest_n_15n(i,j,k_100)* &
+                 drho_dzt
+           endif !} !} YZ
 
            bact(1)%jprod_n_100(i,j) = bact(1)%jprod_n_100(i,j) + bact(1)%jprod_n(i,j,k_100)* &
                 drho_dzt
+           if (do_15n) bact(1)%jprod_n_15n_100(i,j) = bact(1)%jprod_n_15n_100(i,j) + bact(1)%jprod_n_15n(i,j,k_100)* drho_dzt ! YZ: 15N, 22/04/2026
            bact(1)%jzloss_n_100(i,j) = bact(1)%jzloss_n_100(i,j) + bact(1)%jzloss_n(i,j,k_100)* &
                 drho_dzt
            bact(1)%jvirloss_n_100(i,j) = bact(1)%jvirloss_n_100(i,j) + bact(1)%jvirloss_n(i,j,k_100)* &
@@ -8898,6 +8829,7 @@ contains
     allocate(bact(1)%jprod_nh4(isd:ied,jsd:jed,nk))        ; bact(1)%jprod_nh4       = 0.0
     allocate(bact(1)%jprod_po4(isd:ied,jsd:jed,nk))        ; bact(1)%jprod_po4       = 0.0
     allocate(bact(1)%jprod_n(isd:ied,jsd:jed,nk))          ; bact(1)%jprod_n         = 0.0
+    if (do_15n) allocate(bact(1)%jprod_n_15n(isd:ied,jsd:jed,nk))      ; bact(1)%jprod_n_15n     = 0.0 ! YZ: 15N, 22/04/2026
     allocate(bact(1)%o2lim(isd:ied,jsd:jed,nk))            ; bact(1)%o2lim           = 0.0
     allocate(bact(1)%ldonlim(isd:ied,jsd:jed,nk))          ; bact(1)%ldonlim         = 0.0
     allocate(bact(1)%temp_lim(isd:ied,jsd:jed,nk))         ; bact(1)%temp_lim        = 0.0
@@ -8914,6 +8846,7 @@ contains
        allocate(zoo(n)%jhploss_p(isd:ied,jsd:jed,nk))     ; zoo(n)%jhploss_p      = 0.0
        allocate(zoo(n)%jingest_n(isd:ied,jsd:jed,nk))     ; zoo(n)%jingest_n      = 0.0
        if (do_15n) allocate(zoo(n)%jingest_n_15n(isd:ied,jsd:jed,nk)) ; zoo(n)%jingest_n_15n = 0.0 ! YZ: 15N, 25/11/2025
+       if (do_15n) allocate(zoo(n)%jdigest_n_15n(isd:ied,jsd:jed,nk)) ; zoo(n)%jdigest_n_15n = 0.0 ! YZ: 15N, 22/04/2026
        allocate(zoo(n)%jingest_p(isd:ied,jsd:jed,nk))     ; zoo(n)%jingest_p      = 0.0
        allocate(zoo(n)%jingest_sio2(isd:ied,jsd:jed,nk))  ; zoo(n)%jingest_sio2   = 0.0
        allocate(zoo(n)%jingest_fe(isd:ied,jsd:jed,nk))    ; zoo(n)%jingest_fe     = 0.0
@@ -8943,7 +8876,7 @@ contains
     allocate(cobalt%hp_jingest_sio2(isd:ied,jsd:jed,nk))  ; cobalt%hp_jingest_sio2   = 0.0
     allocate(cobalt%hp_jingest_fe(isd:ied,jsd:jed,nk))    ; cobalt%hp_jingest_fe     = 0.0
     if (do_15n) allocate(cobalt%hp_jingest_n_15n(isd:ied,jsd:jed,nk)) ; cobalt%hp_jingest_n_15n = 0.0 ! YZ: 15N, 25/11/2025
-
+    if (do_15n) allocate(cobalt%hp_jdigest_n_15n(isd:ied,jsd:jed,nk)) ; cobalt%hp_jdigest_n_15n = 0.0 ! YZ: 15N, 22/04/2026
 
     allocate(cobalt%f_alk(isd:ied, jsd:jed, 1:nk))        ; cobalt%f_alk=0.0
     allocate(cobalt%f_cadet_arag(isd:ied, jsd:jed, 1:nk)) ; cobalt%f_cadet_arag=0.0
@@ -9321,6 +9254,9 @@ contains
        allocate(zoo(n)%jingest_n_100(isd:ied,jsd:jed))    ; zoo(n)%jingest_n_100    = 0.0
        allocate(zoo(n)%jremin_n_100(isd:ied,jsd:jed))     ; zoo(n)%jremin_n_100     = 0.0
        allocate(zoo(n)%f_n_100(isd:ied,jsd:jed))          ; zoo(n)%f_n_100          = 0.0
+       if (do_15n) allocate(zoo(n)%jprod_n_15n_100(isd:ied,jsd:jed))      ; zoo(n)%jprod_n_15n_100      = 0.0 ! YZ: 15N, 22/04/2026
+       if (do_15n) allocate(zoo(n)%jingest_n_15n_100(isd:ied,jsd:jed))    ; zoo(n)%jingest_n_15n_100    = 0.0 ! YZ: 15N, 22/04/2026
+       if (do_15n) allocate(zoo(n)%jdigest_n_15n_100(isd:ied,jsd:jed))    ; zoo(n)%jdigest_n_15n_100    = 0.0 ! YZ: 15N, 22/04/2026
     enddo
 
    do n = 1,2
@@ -9336,8 +9272,11 @@ contains
    allocate(cobalt%hp_jingest_n_100(isd:ied,jsd:jed))    ; cobalt%hp_jingest_n_100    = 0.0
    allocate(cobalt%hp_jremin_n_100(isd:ied,jsd:jed))     ; cobalt%hp_jremin_n_100     = 0.0
    allocate(cobalt%hp_jprod_ndet_100(isd:ied,jsd:jed))   ; cobalt%hp_jprod_ndet_100   = 0.0
+   if (do_15n) allocate(cobalt%hp_jingest_n_15n_100(isd:ied,jsd:jed))    ; cobalt%hp_jingest_n_15n_100    = 0.0 ! YZ: 15N, 22/04/2026
+   if (do_15n) allocate(cobalt%hp_jdigest_n_15n_100(isd:ied,jsd:jed))    ; cobalt%hp_jdigest_n_15n_100    = 0.0 ! YZ: 15N, 22/04/2026
 
    allocate(bact(1)%jprod_n_100(isd:ied,jsd:jed))   ; bact(1)%jprod_n_100 = 0.0
+   if (do_15n) allocate(bact(1)%jprod_n_15n_100(isd:ied,jsd:jed))   ; bact(1)%jprod_n_15n_100 = 0.0 ! YZ: 15N, 22/04/2026
    allocate(bact(1)%jzloss_n_100(isd:ied,jsd:jed))  ; bact(1)%jzloss_n_100 = 0.0
    allocate(bact(1)%jvirloss_n_100(isd:ied,jsd:jed)); bact(1)%jvirloss_n_100 = 0.0
    allocate(bact(1)%jremin_n_100(isd:ied,jsd:jed))  ; bact(1)%jremin_n_100 = 0.0
@@ -9462,53 +9401,42 @@ contains
 
    ! YZ: 15N, 25/11/2025 {
    if (do_15n) then !{
-      allocate(cobalt%f_d15n_no3(isd:ied,jsd:jed,nk));         cobalt%f_d15n_no3 = 0.0
-      allocate(cobalt%f_d15n_nh4(isd:ied,jsd:jed,nk));         cobalt%f_d15n_nh4 = 0.0
-      allocate(cobalt%f_d15n_ndi(isd:ied,jsd:jed,nk));         cobalt%f_d15n_ndi = 0.0
-      allocate(cobalt%f_d15n_nlg(isd:ied,jsd:jed,nk));         cobalt%f_d15n_nlg = 0.0
-      allocate(cobalt%f_d15n_nmd(isd:ied,jsd:jed,nk));         cobalt%f_d15n_nmd = 0.0
-      allocate(cobalt%f_d15n_nsm(isd:ied,jsd:jed,nk));         cobalt%f_d15n_nsm = 0.0
-      allocate(cobalt%f_d15n_nsmz(isd:ied,jsd:jed,nk));        cobalt%f_d15n_nsmz = 0.0
-      allocate(cobalt%f_d15n_nmdz(isd:ied,jsd:jed,nk));        cobalt%f_d15n_nmdz = 0.0
-      allocate(cobalt%f_d15n_nlgz(isd:ied,jsd:jed,nk));        cobalt%f_d15n_nlgz = 0.0
-      allocate(cobalt%f_d15n_ldon(isd:ied,jsd:jed,nk));        cobalt%f_d15n_ldon = 0.0
-      allocate(cobalt%f_d15n_sldon(isd:ied,jsd:jed,nk));       cobalt%f_d15n_sldon = 0.0
-      allocate(cobalt%f_d15n_srdon(isd:ied,jsd:jed,nk));       cobalt%f_d15n_srdon = 0.0
-      allocate(cobalt%f_d15n_nbact(isd:ied,jsd:jed,nk));       cobalt%f_d15n_nbact = 0.0
-      allocate(cobalt%f_d15n_ndet(isd:ied,jsd:jed,nk));        cobalt%f_d15n_ndet = 0.0
-      allocate(cobalt%f_d15n_ndet_fast(isd:ied,jsd:jed,nk));   cobalt%f_d15n_ndet_fast = 0.0
-      allocate(cobalt%f_d18o_no3(isd:ied,jsd:jed,nk));         cobalt%f_d18o_no3 = 0.0
-      if (do_r2omip) allocate(cobalt%f_d15n_tsldon(isd:ied,jsd:jed,nk)); cobalt%f_d15n_tsldon = 0.0
+      allocate(cobalt%d15n_no3(isd:ied,jsd:jed,nk));         cobalt%d15n_no3 = 0.0
+      allocate(cobalt%d15n_nh4(isd:ied,jsd:jed,nk));         cobalt%d15n_nh4 = 0.0
+      allocate(cobalt%d15n_ndi(isd:ied,jsd:jed,nk));         cobalt%d15n_ndi = 0.0
+      allocate(cobalt%d15n_nlg(isd:ied,jsd:jed,nk));         cobalt%d15n_nlg = 0.0
+      allocate(cobalt%d15n_nmd(isd:ied,jsd:jed,nk));         cobalt%d15n_nmd = 0.0
+      allocate(cobalt%d15n_nsm(isd:ied,jsd:jed,nk));         cobalt%d15n_nsm = 0.0
+      allocate(cobalt%d15n_nsmz(isd:ied,jsd:jed,nk));        cobalt%d15n_nsmz = 0.0
+      allocate(cobalt%d15n_nmdz(isd:ied,jsd:jed,nk));        cobalt%d15n_nmdz = 0.0
+      allocate(cobalt%d15n_nlgz(isd:ied,jsd:jed,nk));        cobalt%d15n_nlgz = 0.0
+      allocate(cobalt%d15n_ldon(isd:ied,jsd:jed,nk));        cobalt%d15n_ldon = 0.0
+      allocate(cobalt%d15n_sldon(isd:ied,jsd:jed,nk));       cobalt%d15n_sldon = 0.0
+      allocate(cobalt%d15n_srdon(isd:ied,jsd:jed,nk));       cobalt%d15n_srdon = 0.0
+      allocate(cobalt%d15n_nbact(isd:ied,jsd:jed,nk));       cobalt%d15n_nbact = 0.0
+      allocate(cobalt%d15n_ndet(isd:ied,jsd:jed,nk));        cobalt%d15n_ndet = 0.0
+      allocate(cobalt%d15n_ndet_fast(isd:ied,jsd:jed,nk));   cobalt%d15n_ndet_fast = 0.0
+      allocate(cobalt%d18o_no3(isd:ied,jsd:jed,nk));         cobalt%d18o_no3 = 0.0
+      if (do_r2omip) allocate(cobalt%d15n_tsldon(isd:ied,jsd:jed,nk)); cobalt%d15n_tsldon = 0.0
 
       allocate(bact(1)%r15n_uptake_ldon(isd:ied,jsd:jed,nk));  bact(1)%r15n_uptake_ldon = 0.0
       allocate(bact(1)%r15n_resp(isd:ied,jsd:jed,nk));         bact(1)%r15n_resp = 0.0
       allocate(bact(1)%f15n_resp(isd:ied,jsd:jed,nk));         bact(1)%f15n_resp = 0.0
-      allocate(bact(1)%r15n_growth(isd:ied,jsd:jed,nk));       bact(1)%r15n_growth = 0.0
-      allocate(bact(1)%f15n_growth(isd:ied,jsd:jed,nk));       bact(1)%f15n_growth = 0.0
 
       do n = 1, NUM_ZOO
       allocate(zoo(n)%r15n_ingest(isd:ied,jsd:jed,nk));        zoo(n)%r15n_ingest = 0.0
-      allocate(zoo(n)%r15n_digest(isd:ied,jsd:jed,nk));        zoo(n)%r15n_digest = 0.0
-      allocate(zoo(n)%f15n_digest(isd:ied,jsd:jed,nk));        zoo(n)%f15n_digest = 0.0
       allocate(zoo(n)%r15n_egest(isd:ied,jsd:jed,nk));         zoo(n)%r15n_egest = 0.0
       allocate(zoo(n)%f15n_egest(isd:ied,jsd:jed,nk));         zoo(n)%f15n_egest = 0.0
+      allocate(zoo(n)%r15n_digest(isd:ied,jsd:jed,nk));        zoo(n)%r15n_digest = 0.0
       allocate(zoo(n)%r15n_resp(isd:ied,jsd:jed,nk));          zoo(n)%r15n_resp = 0.0
       allocate(zoo(n)%f15n_resp(isd:ied,jsd:jed,nk));          zoo(n)%f15n_resp = 0.0
-      allocate(zoo(n)%r15n_growth(isd:ied,jsd:jed,nk));        zoo(n)%r15n_growth = 0.0
-      allocate(zoo(n)%f15n_growth(isd:ied,jsd:jed,nk));        zoo(n)%f15n_growth = 0.0
       enddo
 
       allocate(cobalt%r15n_hp_ingest(isd:ied,jsd:jed,nk));     cobalt%r15n_hp_ingest = 0.0
       allocate(cobalt%r15n_hp_egest(isd:ied,jsd:jed,nk));      cobalt%r15n_hp_egest = 0.0
       allocate(cobalt%f15n_hp_egest(isd:ied,jsd:jed,nk));      cobalt%f15n_hp_egest = 0.0
-      allocate(cobalt%r15n_hp_digest(isd:ied,jsd:jed,nk));     cobalt%r15n_hp_digest = 0.0
-      allocate(cobalt%f15n_hp_digest(isd:ied,jsd:jed,nk));     cobalt%f15n_hp_digest = 0.0
 
-      allocate(cobalt%r15n_ntot_btm(isd:ied,jsd:jed));         cobalt%r15n_ntot_btm = 0.0
-      allocate(cobalt%r15n_burial(isd:ied,jsd:jed));         cobalt%r15n_burial = 0.0
-      allocate(cobalt%f15n_burial(isd:ied,jsd:jed));         cobalt%f15n_burial = 0.0
-      allocate(cobalt%r15n_remin_sed(isd:ied,jsd:jed));         cobalt%r15n_remin_sed = 0.0
-      allocate(cobalt%f15n_remin_sed(isd:ied,jsd:jed));         cobalt%f15n_remin_sed = 0.0
+      allocate(cobalt%f15n_fntot_btm(isd:ied,jsd:jed));        cobalt%f15n_fntot_btm = 0.0
    endif !} ! } YZ
 
   end subroutine user_allocate_arrays
@@ -9607,6 +9535,7 @@ contains
     deallocate(bact(1)%jprod_nh4)
     deallocate(bact(1)%jprod_po4)
     deallocate(bact(1)%jprod_n)
+    if (do_15n) deallocate(bact(1)%jprod_n_15n) ! YZ: 15N, 22/04/2026
     deallocate(bact(1)%o2lim)
     deallocate(bact(1)%ldonlim)
     deallocate(bact(1)%temp_lim)
@@ -9622,6 +9551,7 @@ contains
        deallocate(zoo(n)%jhploss_p)
        deallocate(zoo(n)%jingest_n)
        if (do_15n) deallocate(zoo(n)%jingest_n_15n) ! YZ: 15N, 25/11/2025
+       if (do_15n) deallocate(zoo(n)%jdigest_n_15n) ! YZ: 15N, 22/04/2026
        deallocate(zoo(n)%jingest_p)
        deallocate(zoo(n)%jingest_sio2)
        deallocate(zoo(n)%jingest_fe)
@@ -9897,6 +9827,8 @@ contains
     deallocate(cobalt%hp_jingest_n_100)
     deallocate(cobalt%hp_jremin_n_100)
     deallocate(cobalt%hp_jprod_ndet_100)
+    if (do_15n) deallocate(cobalt%hp_jingest_n_15n_100) ! YZ: 15N, 22/04/2026
+    if (do_15n) deallocate(cobalt%hp_jdigest_n_15n_100) ! YZ: 15N, 22/04/2026
     deallocate(cobalt%jprod_lithdet_100)
     deallocate(cobalt%jprod_sidet_100)
     deallocate(cobalt%jprod_cadet_arag_100)
@@ -10013,6 +9945,9 @@ contains
        deallocate(zoo(n)%jingest_n_100)
        deallocate(zoo(n)%jremin_n_100)
        deallocate(zoo(n)%f_n_100)
+       if (do_15n) deallocate(zoo(n)%jprod_n_15n_100)   ! YZ: 15N, 22/04/2026
+       if (do_15n) deallocate(zoo(n)%jingest_n_15n_100) ! YZ: 15N, 22/04/2026
+       if (do_15n) deallocate(zoo(n)%jdigest_n_15n_100) ! YZ: 15N, 22/04/2026
     enddo
 
     do n = 1,2
@@ -10026,6 +9961,7 @@ contains
     enddo
 
     deallocate(bact(1)%jprod_n_100)
+    if (do_15n) deallocate(bact(1)%jprod_n_15n_100) ! YZ: 15N, 22/04/2026
     deallocate(bact(1)%jzloss_n_100)
     deallocate(bact(1)%jvirloss_n_100)
     deallocate(bact(1)%jremin_n_100)
@@ -10137,6 +10073,7 @@ contains
       deallocate(cobalt%jno3_15n_iceberg)
       deallocate(cobalt%jno3_18o_iceberg)
       deallocate(cobalt%hp_jingest_n_15n)
+      deallocate(cobalt%hp_jdigest_n_15n)
       deallocate(cobalt%tot_layer_int_n_15n)
       deallocate(cobalt%b_nh4_15n)
       deallocate(cobalt%b_no3_15n)
@@ -10148,53 +10085,42 @@ contains
       deallocate(cobalt%btm_no3_18o)
       deallocate(cobalt%wc_vert_int_n_15n)
 
-      deallocate(cobalt%f_d15n_no3)
-      deallocate(cobalt%f_d15n_nh4)
-      deallocate(cobalt%f_d15n_ndi)
-      deallocate(cobalt%f_d15n_nlg)
-      deallocate(cobalt%f_d15n_nmd)
-      deallocate(cobalt%f_d15n_nsm)
-      deallocate(cobalt%f_d15n_nsmz)
-      deallocate(cobalt%f_d15n_nmdz)
-      deallocate(cobalt%f_d15n_nlgz)
-      deallocate(cobalt%f_d15n_ldon)
-      deallocate(cobalt%f_d15n_sldon)
-      deallocate(cobalt%f_d15n_srdon)
-      deallocate(cobalt%f_d15n_nbact)
-      deallocate(cobalt%f_d15n_ndet)
-      deallocate(cobalt%f_d15n_ndet_fast)
-      deallocate(cobalt%f_d18o_no3)
-      if (do_r2omip) deallocate(cobalt%f_d15n_tsldon)
+      deallocate(cobalt%d15n_no3)
+      deallocate(cobalt%d15n_nh4)
+      deallocate(cobalt%d15n_ndi)
+      deallocate(cobalt%d15n_nlg)
+      deallocate(cobalt%d15n_nmd)
+      deallocate(cobalt%d15n_nsm)
+      deallocate(cobalt%d15n_nsmz)
+      deallocate(cobalt%d15n_nmdz)
+      deallocate(cobalt%d15n_nlgz)
+      deallocate(cobalt%d15n_ldon)
+      deallocate(cobalt%d15n_sldon)
+      deallocate(cobalt%d15n_srdon)
+      deallocate(cobalt%d15n_nbact)
+      deallocate(cobalt%d15n_ndet)
+      deallocate(cobalt%d15n_ndet_fast)
+      deallocate(cobalt%d18o_no3)
+      if (do_r2omip) deallocate(cobalt%d15n_tsldon)
 
       deallocate(bact(1)%r15n_uptake_ldon)
       deallocate(bact(1)%r15n_resp)
       deallocate(bact(1)%f15n_resp)
-      deallocate(bact(1)%r15n_growth)
-      deallocate(bact(1)%f15n_growth)
 
       do n = 1, NUM_ZOO
       deallocate(zoo(n)%r15n_ingest)
-      deallocate(zoo(n)%r15n_digest)
-      deallocate(zoo(n)%f15n_digest)
       deallocate(zoo(n)%r15n_egest)
       deallocate(zoo(n)%f15n_egest)
+      deallocate(zoo(n)%r15n_digest)
       deallocate(zoo(n)%r15n_resp)
       deallocate(zoo(n)%f15n_resp)
-      deallocate(zoo(n)%r15n_growth)
-      deallocate(zoo(n)%f15n_growth)
       enddo
 
       deallocate(cobalt%r15n_hp_ingest)
       deallocate(cobalt%r15n_hp_egest)
       deallocate(cobalt%f15n_hp_egest)
-      deallocate(cobalt%r15n_hp_digest)
-      deallocate(cobalt%f15n_hp_digest)
 
-      deallocate(cobalt%r15n_ntot_btm)
-      deallocate(cobalt%r15n_burial)
-      deallocate(cobalt%f15n_burial)
-      deallocate(cobalt%r15n_remin_sed)
-      deallocate(cobalt%f15n_remin_sed)
+      deallocate(cobalt%f15n_fntot_btm)
    endif !} ! } YZ
 
   end subroutine user_deallocate_arrays

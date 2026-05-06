@@ -1091,19 +1091,35 @@ module COBALT_reg_diag
          init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
 
     ! YZ: 15N, 25/11/2025 {
-    vardesc_temp = vardesc("jingest_n_15n_Smz","Ingestion of 15N-labelled nitrogen by small zooplankton",&
+    vardesc_temp = vardesc("jingest_15n_Smz","Ingestion of 15N-labelled nitrogen by small zooplankton",&
                            'h','L','s','mol N kg-1 s-1','f')
     zoo(1)%id_jingest_n_15n = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
          init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
 
-    vardesc_temp = vardesc("jingest_n_15n_Mdz","Ingestion of 15N-labelled nitrogen by medium-sized zooplankton",&
+    vardesc_temp = vardesc("jingest_15n_Mdz","Ingestion of 15N-labelled nitrogen by medium-sized zooplankton",&
                            'h','L','s','mol N kg-1 s-1','f')
     zoo(2)%id_jingest_n_15n = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
          init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
 
-    vardesc_temp = vardesc("jingest_n_15n_Lgz","Ingestion of 15N-labelled nitrogen by large zooplankton",&
+    vardesc_temp = vardesc("jingest_15n_Lgz","Ingestion of 15N-labelled nitrogen by large zooplankton",&
                            'h','L','s','mol N kg-1 s-1','f')
     zoo(3)%id_jingest_n_15n = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1) ! } YZ
+
+    ! YZ: 15N, 22/04/2026 {
+    vardesc_temp = vardesc("jdigest_15n_Smz","Digestion of 15N-labelled nitrogen by small zooplankton",&
+                           'h','L','s','mol N kg-1 s-1','f')
+    zoo(1)%id_jdigest_n_15n = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+
+    vardesc_temp = vardesc("jdigest_15n_Mdz","Digestion of 15N-labelled nitrogen by medium-sized zooplankton",&
+                           'h','L','s','mol N kg-1 s-1','f')
+    zoo(2)%id_jdigest_n_15n = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+
+    vardesc_temp = vardesc("jdigest_15n_Lgz","Digestion of 15N-labelled nitrogen by large zooplankton",&
+                           'h','L','s','mol N kg-1 s-1','f')
+    zoo(3)%id_jdigest_n_15n = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
          init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1) ! } YZ
 
     vardesc_temp = vardesc("jingest_p_Smz","Ingestion of phosphorous by small zooplankton", &
@@ -1410,6 +1426,22 @@ module COBALT_reg_diag
     zoo(3)%id_jprod_n = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
          init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
 
+    ! YZ: 15N, 22/04/2026 {
+    vardesc_temp = vardesc("jprod_15n_nsmz","Production of 15N-labelled new biomass (nitrogen) by small zooplankton",&
+                           'h','L','s','mol N kg-1 s-1','f')
+    zoo(1)%id_jprod_n_15n = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+
+    vardesc_temp = vardesc("jprod_15n_nmdz","Production of 15N-labelled new biomass (nitrogen) by medium-sized zooplankton",&
+                           'h','L','s','mol N kg-1 s-1','f')
+    zoo(2)%id_jprod_n_15n = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+
+    vardesc_temp = vardesc("jprod_15n_nlgz","Production of 15N-labelled new biomass (nitrogen) by large zooplankton",&
+                           'h','L','s','mol N kg-1 s-1','f')
+    zoo(3)%id_jprod_n_15n = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1) !} YZ
+
     vardesc_temp = vardesc("o2lim_Smz","Oxygen limitation of small zooplankton",'h','L','s','dimensionless','f')
     zoo(1)%id_o2lim = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
          init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
@@ -1511,6 +1543,12 @@ module COBALT_reg_diag
                            'h','L','s','mol N kg-1 s-1','f')
     bact(1)%id_jprod_n = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
          init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+
+    ! YZ: 15N, 22/04/2026 {
+    vardesc_temp = vardesc("jprod_15n_nbact","Production of new biomass (nitrogen) by 15N-labelled bacteria",&
+                           'h','L','s','mol N kg-1 s-1','f')
+    bact(1)%id_jprod_n_15n = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1) ! } YZ
 
     vardesc_temp = vardesc("o2lim_Bact","Oxygen limitation of bacteria",'h','L','s','dimensionless','f')
     bact(1)%id_o2lim = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
@@ -2292,7 +2330,7 @@ module COBALT_reg_diag
          init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
 
     vardesc_temp = vardesc("fnlg_15n_btm","large phyto 15N sinking flux to bottom",'h','1','s','mol m-2 s-1','f')
-    phyto(LARGE)%id_fn_btm = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
+    phyto(LARGE)%id_fn_15n_btm = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
          init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
 
     vardesc_temp = vardesc("fnmd_15n_btm","medium phyto 15N sinking flux to bottom",'h','1','s','mol m-2 s-1','f')
@@ -2973,6 +3011,43 @@ module COBALT_reg_diag
     zoo(3)%id_jingest_n_100 = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
          init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
 
+    ! YZ: 15N, 22/04/2026 {
+    vardesc_temp = vardesc("jprod_15n_nsmz_100","Small zooplankton 15N-labelled nitrogen prod. integral in upper 100m",'h','1','s','mol m-2 s-1','f')
+    zoo(1)%id_jprod_n_15n_100 = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+
+    vardesc_temp = vardesc("jprod_15n_nmdz_100","Medium zooplankton 15N-labelled nitrogen prod. integral in upper 100m",'h','1','s','mol m-2 s-1','f')
+    zoo(2)%id_jprod_n_15n_100 = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+
+    vardesc_temp = vardesc("jprod_15n_nlgz_100","Large zooplankton 15N-labelled nitrogen prod. integral in upper 100m",'h','1','s','mol m-2 s-1','f')
+    zoo(3)%id_jprod_n_15n_100 = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+
+    vardesc_temp = vardesc("jingest_15n_nsmz_100","Small zooplankton 15N-labelled nitrogen ingestion integral in upper 100m",'h','1','s','mol m-2 s-1','f')
+    zoo(1)%id_jingest_n_15n_100 = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+
+    vardesc_temp = vardesc("jingest_15n_nmdz_100","Medium zooplankton 15N-labelled nitrogen ingestion integral in upper 100m",'h','1','s','mol m-2 s-1','f')
+    zoo(2)%id_jingest_n_15n_100 = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+
+    vardesc_temp = vardesc("jingest_15n_nlgz_100","Large zooplankton 15N-labelled nitrogen ingestion integral in upper 100m",'h','1','s','mol m-2 s-1','f')
+    zoo(3)%id_jingest_n_15n_100 = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+
+    vardesc_temp = vardesc("jdigest_15n_nsmz_100","Small zooplankton 15N-labelled nitrogen digestion integral in upper 100m",'h','1','s','mol m-2 s-1','f')
+    zoo(1)%id_jdigest_n_15n_100 = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+
+    vardesc_temp = vardesc("jdigest_15n_nmdz_100","Medium zooplankton 15N-labelled nitrogen digestion integral in upper 100m",'h','1','s','mol m-2 s-1','f')
+    zoo(2)%id_jdigest_n_15n_100 = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+
+    vardesc_temp = vardesc("jdigest_15n_nlgz_100","Large zooplankton 15N-labelled nitrogen digestion integral in upper 100m",'h','1','s','mol m-2 s-1','f')
+    zoo(3)%id_jdigest_n_15n_100 = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1) !} YZ
+
     vardesc_temp = vardesc("jzloss_nsmz_100","Small zooplankton nitrogen loss to zooplankton integral in upper 100m",'h','1','s','mol m-2 s-1','f')
     zoo(1)%id_jzloss_n_100 = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
          init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
@@ -3025,6 +3100,15 @@ module COBALT_reg_diag
     cobalt%id_hp_jingest_n_100 = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
          init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
 
+    ! YZ: 22/04/2026 {
+    vardesc_temp = vardesc("jingest_15n_hp_100","Higher predator ingestion of 15N-labelled nitrogen integral in upper 100m",'h','1','s','mol m-2 s-1','f')
+    cobalt%id_hp_jingest_n_15n_100 = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1) 
+    
+    vardesc_temp = vardesc("jdigest_15n_hp_100","Higher predator digestion of 15N-labelled nitrogen integral in upper 100m",'h','1','s','mol m-2 s-1','f')
+    cobalt%id_hp_jdigest_n_15n_100 = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1) !} YZ
+
     vardesc_temp = vardesc("jprod_ndet_hp_100","Higher predator nitrogen detritus prod. integral in upper 100m",'h','1','s','mol m-2 s-1','f')
     cobalt%id_hp_jprod_ndet_100 = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
          init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
@@ -3032,6 +3116,11 @@ module COBALT_reg_diag
     vardesc_temp = vardesc("jprod_nbact_100","Bacteria nitrogen prod. integral in upper 100m",'h','1','s','mol m-2 s-1','f')
     bact(1)%id_jprod_n_100 = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
          init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+
+    ! YZ: 15N, 22/04/2026 {
+    vardesc_temp = vardesc("jprod_15n_nbact_100","Bacteria 15N-labelled nitrogen prod. integral in upper 100m",'h','1','s','mol m-2 s-1','f')
+    bact(1)%id_jprod_n_15n_100 = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1) !} YZ
 
     vardesc_temp = vardesc("jzloss_nbact_100","Bacteria nitrogen loss to zooplankton integral in upper 100m",'h','1','s','mol m-2 s-1','f')
     bact(1)%id_jzloss_n_100 = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
@@ -3478,6 +3567,74 @@ module COBALT_reg_diag
          init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
 
     ! YZ: 15N, 25/11/2025 {
+    vardesc_temp = vardesc("d15n_no3","delta15N of no3",'h','L','s','permil','f')
+    cobalt%id_d15n_no3 = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+
+    vardesc_temp = vardesc("d15n_nh4","delta15N of nh4",'h','L','s','permil','f')
+    cobalt%id_d15n_nh4 = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+
+    vardesc_temp = vardesc("d15n_ndi","delta15N of ndi",'h','L','s','permil','f')
+    cobalt%id_d15n_ndi = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+
+    vardesc_temp = vardesc("d15n_nlg","delta15N of nlg",'h','L','s','permil','f')
+    cobalt%id_d15n_nlg = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+
+    vardesc_temp = vardesc("d15n_nmd","delta15N of nmd",'h','L','s','permil','f')
+    cobalt%id_d15n_nmd = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+
+    vardesc_temp = vardesc("d15n_nsm","delta15N of nsm",'h','L','s','permil','f')
+    cobalt%id_d15n_nsm = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+
+    vardesc_temp = vardesc("d15n_nsmz","delta15N of nsmz",'h','L','s','permil','f')
+    cobalt%id_d15n_nsmz = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+
+    vardesc_temp = vardesc("d15n_nmdz","delta15N of nmdz",'h','L','s','permil','f')
+    cobalt%id_d15n_nmdz = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+
+    vardesc_temp = vardesc("d15n_nlgz","delta15N of nlgz",'h','L','s','permil','f')
+    cobalt%id_d15n_nlgz = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+
+    vardesc_temp = vardesc("d15n_ldon","delta15N of ldon",'h','L','s','permil','f')
+    cobalt%id_d15n_ldon = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+
+    vardesc_temp = vardesc("d15n_sldon","delta15N of sldon",'h','L','s','permil','f')
+    cobalt%id_d15n_sldon = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+
+    vardesc_temp = vardesc("d15n_srdon","delta15N of srdon",'h','L','s','permil','f')
+    cobalt%id_d15n_srdon = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+
+    vardesc_temp = vardesc("d15n_nbact","delta15N of nbact",'h','L','s','permil','f')
+    cobalt%id_d15n_nbact = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+
+    vardesc_temp = vardesc("d15n_ndet","delta15N of ndet",'h','L','s','permil','f')
+    cobalt%id_d15n_ndet = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+
+    vardesc_temp = vardesc("d15n_ndet_fast","delta15N of ndet_fast",'h','L','s','permil','f')
+    cobalt%id_d15n_ndet_fast = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+
+    vardesc_temp = vardesc("d18o_no3","delta18O of no3",'h','L','s','permil','f')
+    cobalt%id_d18o_no3 = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+
+    vardesc_temp = vardesc("d15n_tsldon","delta15N of tsldon",'h','L','s','permil','f')
+    cobalt%id_d15n_tsldon = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+
     vardesc_temp = vardesc("jno3_15n","15N-labelled no3 source",'h','L','s','mol kg-1 s-1','f')
     cobalt%id_jno3_15n = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
          init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
