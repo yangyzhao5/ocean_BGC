@@ -375,6 +375,8 @@ module cobalt_types
     integer ::  id_jingest_n_15n_100  = -1 !< ID associated with diagnostics for zooplankton 15N-labelled nitrogen ingestion integral in upper 100m ! YZ: 15N, 22/04/2026
     integer ::  id_jdigest_n_15n_100  = -1 !< ID associated with diagnostics for zooplankton 15N-labelled nitrogen digestion integral in upper 100m ! YZ: 15N, 22/04/2026
     integer ::  id_f_n_100        = -1 !< ID associated with diagnostics for zooplankton nitrogen biomass in upper 100m
+    integer ::  id_f15n_egest     = -1 !< ID associated with diagnostics for fraction of 15N in zooplankton egestion
+    integer ::  id_f15n_resp      = -1 !< ID associated with diagnostics for fraction of 15N in digestion for zooplankton respiration
   end type zooplankton
 
   !> bacteria data type
@@ -437,6 +439,7 @@ module cobalt_types
     integer ::  id_jremin_n_100     = -1  !< ID associated with diagnostics for bacteria nitrogen remineralization integral in upper 100m
     integer ::  id_juptake_ldon_100 = -1  !< ID associated with diagnostics for bacterial uptake of labile dissolved org. nitrogen in upper 100m   
     integer ::  id_f_n_100          = -1  !< ID associated with diagnostics for bacterial nitrogen biomass in upper 100m
+    integer ::  id_f15n_resp        = -1  !< ID associated with diagnostics for fraction of 15N in ldon for bacteria respiration
   end type bacteria
 
   !> data type for other variables used in generic_cobalt module 
@@ -590,20 +593,19 @@ module cobalt_types
           r15n_ref,            & ! YZ: 15N, 25/11/2025 {
           r15n_atm,            &
           r15n_iceberg,        &
-          alpha15n_nfix,       &
           alpha15n_uptake_no3, &
           alpha15n_uptake_nh4, &
           alpha15n_nitrif,     &
-          alpha15n_remin,      &
+          alpha15n_resp,       &
           alpha15n_uptake_ldon,&
           alpha15n_decay_don,  &
           alpha15n_denit_wc,   &
           alpha15n_denit_sed,  &
-          alpha15n_zoo_ingest, &
+          alpha15n_ingest,     &
           alpha15n_zoo_egest,  &
           alpha15n_zoo_digest, &
-          alpha15n_hp_ingest,  &
           alpha15n_nofrac,     & 
+          r18o_ref,            &
           r18o_nitrif,         &
           r18o_iceberg,        & 
           alpha18o_uptake_no3, &
@@ -1130,11 +1132,21 @@ module cobalt_types
           runoff_flux_sldop,&
           runoff_flux_srdop,&
           runoff_flux_tsldon,& ! YZ: R2OMIP, 07/07/2025
+          runoff_flux_no3_15n,& ! YZ: 15N, 08/05/2026
+          runoff_flux_no3_18o,&
+          runoff_flux_sldon_15n,&
+          runoff_flux_tsldon_15n,& 
+          runoff_flux_ldon_15n,&
+          runoff_flux_srdon_15n,&
+          runoff_flux_ndet_15n,&! YZ
           dry_fed, wet_fed,&
           dry_lith, wet_lith,&
           dry_no3, wet_no3,&
           dry_nh4, wet_nh4,&
           dry_po4, wet_po4, &
+          dry_no3_15n, wet_no3_15n,&
+          dry_no3_18o, wet_no3_18o,&
+          dry_nh4_15n, wet_nh4_15n,&
           stf_gas_dic,&
           stf_gas_o2,&
           deltap_dic,&
@@ -1159,6 +1171,12 @@ module cobalt_types
           id_dep_wet_po4   = -1,       &
           id_dep_wet_lith  = -1,       &
           id_dep_dry_lith  = -1,       &
+          id_dep_dry_nh4_15n = -1,     & ! YZ: 15N, 08/05/2026
+          id_dep_dry_no3_15n = -1,     &
+          id_dep_dry_no3_18o = -1,     &
+          id_dep_wet_nh4_15n = -1,     &
+          id_dep_wet_no3_15n = -1,     &
+          id_dep_wet_no3_18o = -1,     & ! YZ
           id_omega_arag    = -1,       &
           id_omega_calc    = -1,       &
           id_irr_aclm      = -1,       &
@@ -1357,6 +1375,13 @@ module cobalt_types
           id_runoff_flux_sldop = -1,   &
           id_runoff_flux_srdop = -1,   &
           id_runoff_flux_tsldon= -1,   &  ! YZ: R2OMIP, 07/07/2025
+          id_runoff_flux_no3_15n = -1,  & ! YZ: 15N, 08/05/2026
+          id_runoff_flux_no3_18o = -1,  &
+          id_runoff_flux_sldon_15n = -1,&
+          id_runoff_flux_tsldon_15n= -1,& 
+          id_runoff_flux_ldon_15n = -1, &
+          id_runoff_flux_srdon_15n = -1,&
+          id_runoff_flux_ndet_15n = -1, & ! YZ
           id_tot_layer_int_c = -1,     &
           id_tot_layer_int_fe = -1,    &
           id_tot_layer_int_n = -1,     &
@@ -1437,6 +1462,7 @@ module cobalt_types
           id_jno3_18o_iceberg = -1,    &
           id_hp_jingest_n_15n = -1,    &
           id_hp_jdigest_n_15n = -1,    & ! YZ: 15N, 22/04/2026
+          id_f15n_hp_egest = -1,       &
           id_tot_layer_int_n_15n = -1, &
           id_b_nh4_15n = -1,           &
           id_b_no3_15n = -1,           &

@@ -1466,6 +1466,37 @@ module COBALT_reg_diag
     zoo(3)%id_temp_lim = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
          init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
 
+    ! YZ: 15N, 01/06/2026 {
+    vardesc_temp = vardesc("f15n_egest_nsmz","Fraction of 15N in egestion by small zooplankton",&
+                           'h','L','s','dimensionless','f')
+    zoo(1)%id_f15n_egest = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+
+    vardesc_temp = vardesc("f15n_egest_nmdz","Fraction of 15N in egestion by medium zooplankton",&
+                           'h','L','s','dimensionless','f')
+    zoo(2)%id_f15n_egest = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+
+    vardesc_temp = vardesc("f15n_egest_nlgz","Fraction of 15N in egestion by large zooplankton",&
+                           'h','L','s','dimensionless','f')
+    zoo(3)%id_f15n_egest = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+
+    vardesc_temp = vardesc("f15n_resp_nsmz","Fraction of 15N in digestion by small zooplankton for respiration",&
+                           'h','L','s','dimensionless','f')
+    zoo(1)%id_f15n_resp = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+
+    vardesc_temp = vardesc("f15n_resp_nmdz","Fraction of 15N in digestion by medium zooplankton for respiration",&
+                           'h','L','s','dimensionless','f')
+    zoo(2)%id_f15n_resp = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+
+    vardesc_temp = vardesc("f15n_resp_nlgz","Fraction of 15N in digestion by large zooplankton for respiration",&
+                           'h','L','s','dimensionless','f')
+    zoo(3)%id_f15n_resp = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1) !} YZ
+
     !
     ! Register bacterial diagnostics, starting with losses of bacteria to ingestion by zooplankton
     ! CAS: limit loss terms to N
@@ -1565,6 +1596,19 @@ module COBALT_reg_diag
     ! YZ: 07/07/2025 {
     vardesc_temp = vardesc("no3lim_Bact","Nitrate limitation of bacteria",'h','L','s','dimensionless','f')
     bact(1)%id_no3lim = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1) ! } YZ
+
+    ! YZ: 15N, 01/06/2026 {
+    vardesc_temp = vardesc("f15n_resp_Bact","Fraction of 15N of ldon for bacteria respiration",'h','L','s','dimensionless','f')
+    bact(1)%id_f15n_resp = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1) ! } YZ
+
+    ! YZ: 15N, 01/06/2026 {
+    !
+    ! Register diagnostics for high predators
+    !
+    vardesc_temp = vardesc("f15n_egest_hp","Fraction of 15N in egestion by high predators",'h','L','s','dimensionless','f')
+    cobalt%id_f15n_hp_egest = register_diag_field(package_name, vardesc_temp%name, axes(1:3),&
          init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1) ! } YZ
 
     !
@@ -2087,6 +2131,47 @@ module COBALT_reg_diag
     ! YZ: R2OMIP, 07/07/2025 {
     vardesc_temp = vardesc("runoff_flux_tsldon","TSLDON runoff flux to the ocean",'h','1','s','mol m-2 s-1','f')
     cobalt%id_runoff_flux_tsldon = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)  ! } YZ
+
+    ! YZ: 15N, 08/05/2026 {
+    vardesc_temp = vardesc("dep_dry_nh4_15n","Dry Deposition of 15N-labelled Ammonia to the ocean",'h','1','s','mol m-2 s-1','f')
+    cobalt%id_dep_dry_nh4_15n = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+
+    vardesc_temp = vardesc("dep_dry_no3_15n","Dry Deposition of 15N-labelled Nitrate to the ocean",'h','1','s','mol m-2 s-1','f')
+    cobalt%id_dep_dry_no3_15n = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+
+    vardesc_temp = vardesc("dep_dry_no3_18o","Dry Deposition of 18O-labelled Nitrate to the ocean",'h','1','s','mol m-2 s-1','f')
+    cobalt%id_dep_dry_no3_18o = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+
+    vardesc_temp = vardesc("dep_wet_nh4_15n","Wet Deposition of 15N-labelled Ammonia to the ocean",'h','1','s','mol m-2 s-1','f')
+    cobalt%id_dep_wet_nh4_15n = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+
+    vardesc_temp = vardesc("dep_wet_no3_15n","Wet Deposition of 15N-labelled Nitrate to the ocean",'h','1','s','mol m-2 s-1','f')
+    cobalt%id_dep_wet_no3_15n = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+
+    vardesc_temp = vardesc("dep_wet_no3_18o","Wet Deposition of 18O-labelled Nitrate to the ocean",'h','1','s','mol m-2 s-1','f')
+    cobalt%id_dep_wet_no3_18o = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+
+    vardesc_temp = vardesc("runoff_flux_no3_15n","15N-labelled nitrate runoff flux to the ocean",'h','1','s','mol m-2 s-1','f')
+    cobalt%id_runoff_flux_no3_15n = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+
+    vardesc_temp = vardesc("runoff_flux_no3_18o","18O-labelled nitrate runoff flux to the ocean",'h','1','s','mol m-2 s-1','f')
+    cobalt%id_runoff_flux_no3_18o = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+ 
+    vardesc_temp = vardesc("runoff_flux_sldon_15n","15N-labelled SLDON runoff flux to the ocean",'h','1','s','mol m-2 s-1','f')
+    cobalt%id_runoff_flux_sldon_15n = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
+         init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)
+   
+    vardesc_temp = vardesc("runoff_flux_tsldon_15n","15N-labelled TSLDON runoff flux to the ocean",'h','1','s','mol m-2 s-1','f')
+    cobalt%id_runoff_flux_tsldon_15n = register_diag_field(package_name, vardesc_temp%name, axes(1:2),&
          init_time, vardesc_temp%longname,vardesc_temp%units, missing_value = missing_value1)  ! } YZ
 
     !

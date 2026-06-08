@@ -1563,7 +1563,9 @@ module COBALT_send_diag
           ! YZ: 15N, 22/04/2026 {
           if (do_15n) then !{
           used = g_send_data(bact(1)%id_jprod_n_15n, bact(1)%jprod_n_15n, &
-            model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk) 
+            model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
+          used = g_send_data(bact(1)%id_f15n_resp, bact(1)%f15n_resp, &
+            model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk) ! YZ:15N, 01/06/2026 
           endif !} !}YZ
           used = g_send_data(bact(1)%id_o2lim, bact(1)%o2lim, &
             model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
@@ -1636,6 +1638,10 @@ module COBALT_send_diag
             if (do_15n) then !{
             used = g_send_data(zoo(n)%id_jprod_n_15n, zoo(n)%jprod_n_15n, &
               model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk) 
+            used = g_send_data(zoo(n)%id_f15n_egest, zoo(n)%f15n_egest, &
+              model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
+            used = g_send_data(zoo(n)%id_f15n_resp, zoo(n)%f15n_resp, &
+              model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
             endif !} !}YZ
             used = g_send_data(zoo(n)%id_o2lim, zoo(n)%o2lim, &
               model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
@@ -1643,6 +1649,14 @@ module COBALT_send_diag
               model_time, rmask = grid_tmask, is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
           enddo
 
+          ! YZ: 15N, 01/06/2026 {
+          !
+          ! High Predator diagnostics
+          !
+          if (do_15n) then !{
+            used = g_send_data(cobalt%id_f15n_hp_egest, cobalt%f15n_hp_egest, &
+              model_time, rmask = grid_tmask(:,:,:), is_in=isc, js_in=jsc, ks_in=1,ie_in=iec, je_in=jec, ke_in=nk)
+          endif !} !} YZ
           !
           ! General COBALT Production diagnostics (not specific to phytoplankton, zooplankton or bacteria)
           !
@@ -1993,7 +2007,38 @@ module COBALT_send_diag
             used = g_send_data(cobalt%id_runoff_flux_srdop, cobalt%runoff_flux_srdop, &
               model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
           endif !} ! } YZ
-
+          ! YZ: 15N, 08/05/2026 {
+          if (do_15n) then !{
+            used = g_send_data(cobalt%id_dep_dry_nh4_15n, cobalt%dry_nh4_15n, &
+              model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
+            used = g_send_data(cobalt%id_dep_dry_no3_15n, cobalt%dry_no3_15n, &
+              model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
+            used = g_send_data(cobalt%id_dep_dry_no3_18o, cobalt%dry_no3_18o, &
+              model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
+            used = g_send_data(cobalt%id_dep_wet_nh4_15n, cobalt%wet_nh4_15n, &
+              model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
+            used = g_send_data(cobalt%id_dep_wet_no3_15n, cobalt%wet_no3_15n, &
+              model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
+            used = g_send_data(cobalt%id_dep_wet_no3_18o, cobalt%wet_no3_18o, &
+              model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
+            used = g_send_data(cobalt%id_runoff_flux_no3_15n, cobalt%runoff_flux_no3_15n, &
+              model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
+            used = g_send_data(cobalt%id_runoff_flux_no3_18o, cobalt%runoff_flux_no3_18o, &
+              model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
+            used = g_send_data(cobalt%id_runoff_flux_sldon_15n, cobalt%runoff_flux_sldon_15n, &
+              model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
+            if (do_r2omip) then
+            used = g_send_data(cobalt%id_runoff_flux_tsldon_15n, cobalt%runoff_flux_tsldon_15n, &
+              model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
+            else
+            used = g_send_data(cobalt%id_runoff_flux_ldon_15n, cobalt%runoff_flux_ldon_15n, &
+              model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
+            used = g_send_data(cobalt%id_runoff_flux_srdon_15n, cobalt%runoff_flux_srdon_15n, &
+              model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
+            used = g_send_data(cobalt%id_runoff_flux_ndet_15n, cobalt%runoff_flux_ndet_15n, &
+              model_time, rmask = grid_tmask(:,:,1), is_in=isc, js_in=jsc, ie_in=iec, je_in=jec)
+            endif
+          endif !} !} YZ
           !
           ! Save 100m integral fluxes (move calculation here for consistency with post_vertdiff?)
           !
