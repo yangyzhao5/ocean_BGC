@@ -4587,27 +4587,17 @@ contains
              phyto(n)%no3lim(i,j,k)/(phyto(n)%no3lim(i,j,k)+phyto(n)%nh4lim(i,j,k)+epsln) )
           phyto(n)%juptake_nh4(i,j,k) = max( 0.0, phyto(n)%mu(i,j,k)*phyto(n)%f_n(i,j,k)*   &
              phyto(n)%nh4lim(i,j,k)/(phyto(n)%no3lim(i,j,k)+phyto(n)%nh4lim(i,j,k)+epsln) )
-          ! If growth is negative, results in net respiration and production of nh4 if oxygen is above minimum threshold.
-          ! If oxygen is below that threshold, cell death results in labile dissolved organic production
-          if (cobalt%f_o2(i,j,k) .gt. cobalt%o2_min) then
-            cobalt%jprod_nh4(i,j,k) = cobalt%jprod_nh4(i,j,k) - min(0.0,phyto(n)%mu(i,j,k)*phyto(n)%f_n(i,j,k))
-            cobalt%jo2resp_wc(i,j,k) = cobalt%jo2resp_wc(i,j,k) - &
-               min(0.0,phyto(n)%mu(i,j,k)*phyto(n)%f_n(i,j,k))*cobalt%o2_2_nh4
-          else
-            cobalt%jprod_ldon(i,j,k) = cobalt%jprod_ldon(i,j,k) - min(0.0,phyto(n)%mu(i,j,k)*phyto(n)%f_n(i,j,k))
-          endif
+          ! If growth is negative, the phytoplankton biomass is routed to ldon, that can later be
+          ! respired by bacteria (consume oxygen and produce DIC and ammonium). YZ
+          cobalt%jprod_ldon(i,j,k) = cobalt%jprod_ldon(i,j,k) - min(0.0,phyto(n)%mu(i,j,k)*phyto(n)%f_n(i,j,k))
        enddo !} n
 
        ! YZ: 15N, 25/11/2025 {
        ! If growth is negative, results in labile dissolved organic production whether or not oxygen is above minimum threshold.
-       ! This seems to accumulate ldon over time and results in unrealistic d15n of nbact and ldon
+       ! This ldon can be later respired by bacteria and routed to NH4 with isotope fractionation.
        if (do_15n) then !{
           do n = 1, NUM_PHYTO !{
-             if (cobalt%f_o2(i,j,k) .gt. cobalt%o2_min) then
-                cobalt%jprod_nh4_15n(i,j,k) = cobalt%jprod_nh4_15n(i,j,k) - min(0.0,phyto(n)%mu(i,j,k)*phyto(n)%f_n_15n(i,j,k))
-             else
-                cobalt%jprod_ldon_15n(i,j,k) = cobalt%jprod_ldon_15n(i,j,k) - min(0.0,phyto(n)%mu(i,j,k)*phyto(n)%f_n_15n(i,j,k))
-             endif
+             cobalt%jprod_ldon_15n(i,j,k) = cobalt%jprod_ldon_15n(i,j,k) - min(0.0,phyto(n)%mu(i,j,k)*phyto(n)%f_n_15n(i,j,k))
           enddo !}
        end if !} ! } YZ
     enddo;  enddo ; enddo !} i,j,k
